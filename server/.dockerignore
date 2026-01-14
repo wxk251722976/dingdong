@@ -1,0 +1,5 @@
+# Docker 相关文件
+.env
+
+# 数据卷
+mysql_data/

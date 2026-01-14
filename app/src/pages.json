@@ -1,0 +1,79 @@
+{
+    "pages": [
+        {
+            "path": "pages/elder/index",
+            "style": {
+                "navigationBarTitleText": "打卡",
+                "enablePullDownRefresh": true
+            }
+        },
+        {
+            "path": "pages/supervisor/index",
+            "style": {
+                "navigationBarTitleText": "监督列表"
+            }
+        },
+        {
+            "path": "pages/relation/index",
+            "style": {
+                "navigationBarTitleText": "我的关系"
+            }
+        },
+        {
+            "path": "pages/relation/add",
+            "style": {
+                "navigationBarTitleText": "发送绑定邀请"
+            }
+        },
+        {
+            "path": "pages/task/add",
+            "style": {
+                "navigationBarTitleText": "设置新任务"
+            }
+        },
+        {
+            "path": "pages/history/index",
+            "style": {
+                "navigationBarTitleText": "历史记录"
+            }
+        },
+        {
+            "path": "pages/mine/index",
+            "style": {
+                "navigationBarTitleText": "我的"
+            }
+        },
+        {
+            "path": "pages/login/index",
+            "style": {
+                "navigationBarTitleText": "登录"
+            }
+        }
+    ],
+    "globalStyle": {
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "叮咚",
+        "navigationBarBackgroundColor": "#F8F8F8",
+        "backgroundColor": "#F8F8F8"
+    },
+    "tabBar": {
+        "color": "#999999",
+        "selectedColor": "#68FFB4",
+        "backgroundColor": "#ffffff",
+        "borderStyle": "black",
+        "list": [
+            {
+                "pagePath": "pages/elder/index",
+                "text": "打卡",
+                "iconPath": "static/tab/check.png",
+                "selectedIconPath": "static/tab/check-active.png"
+            },
+            {
+                "pagePath": "pages/mine/index",
+                "text": "我的",
+                "iconPath": "static/tab/mine.png",
+                "selectedIconPath": "static/tab/mine-active.png"
+            }
+        ]
+    }
+}

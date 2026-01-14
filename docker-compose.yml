@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # MySQL 数据库服务
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: dingdong-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-dingdong}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      # 数据持久化
+      - mysql_data:/var/lib/mysql
+      # 初始化脚本（按文件名顺序执行）
+      - ./sql:/docker-entrypoint-initdb.d:ro
+      # MySQL 配置
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123456}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dingdong-network
+
+  # ============================================
+  # Spring Boot 后端服务
+  # ============================================
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: dingdong-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 数据库配置
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-dingdong}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      # 微信小程序配置
+      WECHAT_APPID: ${WECHAT_APPID:-your_appid}
+      WECHAT_SECRET: ${WECHAT_SECRET:-your_secret}
+      # Spring 配置
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    networks:
+      - dingdong-network
+
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  dingdong-network:
+    driver: bridge
+
+# ============================================
+# 数据卷配置
+# ============================================
+volumes:
+  mysql_data:
+    driver: local
