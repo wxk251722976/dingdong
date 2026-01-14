@@ -9,7 +9,7 @@
     <div class="main-action">
       <div class="circle-btn" @click="handleCheckIn" :class="{ disabled: !currentTask }">
         <template v-if="currentTask">
-           <div class="btn-title">打卡：{{ currentTask.title }}</div>
+           <div class="btn-title">叮咚：{{ currentTask.title }}</div>
            <div class="btn-sub">点击告诉 Ta</div>
         </template>
         <template v-else>
@@ -27,14 +27,15 @@
           class="task-item" 
           v-for="(item, index) in dailyTasks" 
           :key="index"
-          :class="{ done: item.status === 'COMPLETED' }"
+          :class="{ done: item.status === 1 }"
         >
           <div class="task-info">
-            <div class="task-title">{{ item.task.title }}</div>
-            <div class="task-time">⏰ {{ item.task.remindTime || '全天' }}</div>
+            <div class="task-title">{{ item.title }}</div>
+            <div class="task-time">⏰ {{ formatTime(item.remindTime) }}</div>
           </div>
           <div class="task-status">
-            <text v-if="item.status === 'COMPLETED'" class="icon-done">✅</text>
+            <text v-if="item.status === 1" class="icon-done">✅</text>
+            <text v-else-if="item.status === 2" class="icon-missed">⚠️</text>
             <text v-else class="icon-pending">⭕</text>
           </div>
         </div>
@@ -51,20 +52,22 @@
 </template>
 
 <script>
+import request from '@/utils/request';
+import { TaskStatus } from '@/utils/constants';
+
 export default {
   data() {
     return {
       time: '00:00',
       timer: null,
-      dailyTasks: [], // List<DailyTaskStatusDTO>
+      dailyTasks: [],
     };
   },
   computed: {
-    // Find the first pending task to display in the main circle
+    // 找到第一个待完成的任务
     currentTask() {
-      // Find first with status != COMPLETED
-      const pending = this.dailyTasks.find(t => t.status !== 'COMPLETED');
-      return pending ? pending.task : null;
+      const pending = this.dailyTasks.find(t => t.status !== TaskStatus.COMPLETED.code);
+      return pending || null;
     }
   },
   onShow() {
@@ -84,56 +87,45 @@ export default {
       const minutes = String(now.getMinutes()).padStart(2, '0');
       this.time = `${hours}:${minutes}`;
     },
+    formatTime(remindTime) {
+      if (!remindTime) return '全天';
+      // remindTime格式: "2026-01-14T10:00:00"
+      const time = remindTime.split('T')[1];
+      return time ? time.substring(0, 5) : '全天';
+    },
     fetchDailyTasks() {
-      // Use logged in user ID or default to 1 for demo
       const userId = uni.getStorageSync('user')?.id || 1; 
       
-      uni.request({
-        url: 'http://localhost:8080/task/daily',
-        method: 'GET',
-        data: { userId: userId },
-        success: (res) => {
-          if (res.data.code === 200) {
-            this.dailyTasks = res.data.data;
-          }
-        },
-        fail: (err) => {
-          console.error('Fetch tasks failed', err);
-          // Fallback static data for demo if backend not running
-          this.dailyTasks = [
-             { task: { id: 1, title: '吃药 (示例)', remindTime: '08:00' }, status: 'COMPLETED' },
-             { task: { id: 2, title: '连接后端以展示真实数据', remindTime: '10:00' }, status: 'PENDING' }
-          ];
-        }
+      request({
+        url: '/task/daily',
+        data: { userId }
+      }).then(data => {
+        this.dailyTasks = data || [];
+      }).catch(err => {
+        console.error('Fetch tasks failed', err);
+        this.dailyTasks = [];
       });
     },
     handleCheckIn() {
       if (!this.currentTask) return;
       
       const userId = uni.getStorageSync('user')?.id || 1;
-      uni.showLoading({ title: '打卡中...' });
+      uni.showLoading({ title: '叮咚中...' });
       
-      uni.request({
-        url: 'http://localhost:8080/checkIn/do',
+      request({
+        url: '/checkIn/do',
         method: 'POST',
         data: { 
-            userId: userId,
-            taskId: this.currentTask.id
-        },
-        success: (res) => {
-           uni.hideLoading();
-           if (res.data.code === 200) {
-              uni.showToast({ title: '打卡成功', icon: 'success' });
-              // Refresh requests
-              this.fetchDailyTasks();
-           } else {
-              uni.showToast({ title: res.data.msg || '失败', icon: 'none' });
-           }
-        },
-        fail: () => {
-           uni.hideLoading();
-           uni.showToast({ title: '网络错误', icon: 'none' });
+            userId,
+            taskId: this.currentTask.taskId
         }
+      }).then(() => {
+         uni.showToast({ title: '叮咚成功', icon: 'success' });
+         this.fetchDailyTasks();
+      }).catch(msg => {
+         // Error handled in request interceptor
+      }).finally(() => {
+         uni.hideLoading();
       });
     },
     goToHistory() {
@@ -150,7 +142,6 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* justify-content: space-between; Removed to allow list to scroll or sit naturally */
   min-height: 100vh;
   background-color: #F8F8F8;
   padding: 80rpx 40rpx 40rpx;
@@ -163,29 +154,28 @@ export default {
 }
 
 .time {
-  font-size: 100rpx; /* Increased from 80 */
-  font-weight: 400; /* Slightly bolder or just larger */
+  font-size: 100rpx;
+  font-weight: 400;
   color: #333333;
   font-family: 'Helvetica Neue', Helvetica, sans-serif;
   line-height: 1;
 }
 
 .sub-text {
-  font-size: 36rpx; /* Increased from 32 */
+  font-size: 36rpx;
   color: #666666;
   margin-top: 20rpx;
 }
 
 .main-action {
   margin-bottom: 60rpx;
-  /* Fixed size to prevent shifting */
   height: 440rpx;
   display: flex;
   align-items: center;
 }
 
 .circle-btn {
-  width: 440rpx; /* Increased from 400 */
+  width: 440rpx;
   height: 440rpx;
   border-radius: 50%;
   background-color: #68FFB4;
@@ -209,15 +199,15 @@ export default {
 }
 
 .btn-title {
-  font-size: 48rpx; /* Increased from 40 */
+  font-size: 48rpx;
   font-weight: bold;
   color: #333333;
   margin-bottom: 12rpx;
 }
 
 .btn-sub {
-  font-size: 28rpx; /* Increased from 24 */
-  color: #444444; /* Darker for better contrast */
+  font-size: 28rpx;
+  color: #444444;
 }
 
 .task-list-section {
@@ -262,7 +252,7 @@ export default {
 }
 
 .task-title {
-  font-size: 34rpx; /* Good readable size */
+  font-size: 34rpx;
   color: #333;
   font-weight: 500;
   margin-bottom: 6rpx;
@@ -277,6 +267,10 @@ export default {
   font-size: 32rpx;
 }
 
+.icon-missed {
+  color: #fa5151;
+}
+
 .empty-hint {
   text-align: center;
   color: #999;
@@ -288,6 +282,6 @@ export default {
   font-size: 28rpx;
   color: #999999;
   padding: 20rpx;
-  margin-top: auto; /* Push to bottom if space permits */
+  margin-top: auto;
 }
 </style>

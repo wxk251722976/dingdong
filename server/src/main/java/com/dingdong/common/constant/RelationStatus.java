@@ -1,0 +1,40 @@
+package com.dingdong.common.constant;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+/**
+ * 用户关系状态枚举
+ * 用于表示绑定邀请的确认状态
+ */
+@Getter
+@AllArgsConstructor
+public enum RelationStatus {
+
+    /** 待确认 - 邀请已发送，等待对方确认 */
+    PENDING(0, "待确认"),
+
+    /** 已确认 - 双方已建立关系 */
+    CONFIRMED(1, "已确认");
+
+    private final Integer code;
+    private final String desc;
+
+    /**
+     * 根据code获取枚举值
+     * 
+     * @param code 状态码
+     * @return 对应的枚举值，未找到返回null
+     */
+    public static RelationStatus fromCode(Integer code) {
+        if (code == null) {
+            return null;
+        }
+        for (RelationStatus status : values()) {
+            if (status.getCode().equals(code)) {
+                return status;
+            }
+        }
+        return null;
+    }
+}

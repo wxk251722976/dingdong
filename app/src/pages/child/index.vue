@@ -1,21 +1,21 @@
 <template>
 	<div class="child-container">
 		<div class="stat-card">
-			<div class="stat-title">今日打卡情况</div>
+			<div class="stat-title">今日叮咚情况</div>
 			<div class="stat-content">
 				<div class="stat-item">
 					<div class="num">{{ todayCount }}</div>
-					<div class="label">已打卡</div>
+					<div class="label">已叮咚</div>
 				</div>
 				<div class="stat-item">
 					<div class="num safe" v-if="todayCount > 0">正常</div>
-					<div class="num warn" v-else>未打卡</div>
+					<div class="num warn" v-else>未叮咚</div>
 					<div class="label">状态</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="list-title">打卡记录</div>
+		<div class="list-title">叮咚记录</div>
 		<div class="log-list">
 			<div class="log-item" v-for="(item, index) in checkInLogs" :key="index">
 				<div class="log-icon">💊</div>
@@ -24,11 +24,11 @@
 					<div class="log-date">{{ formatDate(item.checkTime) }}</div>
 				</div>
 				<div class="log-status normal">
-					{{ item.status === 1 ? '正常打卡' : '补打卡' }}
+					{{ item.status === 1 ? '正常叮咚' : '补叮咚' }}
 				</div>
 			</div>
 			<div class="empty-tip" v-if="checkInLogs.length === 0">
-				暂无打卡记录
+				暂无叮咚记录
 			</div>
 		</div>
 	</div>

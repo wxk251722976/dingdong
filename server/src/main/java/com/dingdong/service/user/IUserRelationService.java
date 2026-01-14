@@ -29,4 +29,28 @@ public interface IUserRelationService extends IService<UserRelation> {
      * @return 成功返回 true
      */
     boolean bindElder(BindDTO bindDTO);
+
+    /**
+     * 获取用户的所有关系（包括我监督的和监督我的）
+     * 
+     * @param userId 用户ID
+     * @return 关系列表
+     */
+    List<UserRelation> getMyRelations(Long userId);
+
+    /**
+     * 发送绑定邀请
+     * 
+     * @param relation 关系实体（包含elderId, childId, relationName）
+     * @return 是否成功
+     */
+    boolean sendInvite(UserRelation relation);
+
+    /**
+     * 接受绑定邀请
+     * 
+     * @param relationId 关系记录ID
+     * @return 是否成功
+     */
+    boolean acceptInvite(Long relationId);
 }

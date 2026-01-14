@@ -1,40 +1,42 @@
 <template>
   <div class="container">
     <div class="tabs">
-      <div class="tab-item" :class="{ active: currentTab === 0 }" @click="currentTab = 0">我监督的</div>
-      <div class="tab-item" :class="{ active: currentTab === 1 }" @click="currentTab = 1">监督我的</div>
+      <div class="tab-item" :class="{ active: currentTab === 0 }" @click="switchTab(0)">我监督的</div>
+      <div class="tab-item" :class="{ active: currentTab === 1 }" @click="switchTab(1)">监督我的</div>
     </div>
 
     <div class="list-content">
       <div class="user-item" v-for="(item, index) in listData" :key="index">
         <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
         <div class="info">
-          <div class="name">{{ item.name }}</div>
-          <div class="desc">{{ item.desc }}</div>
+          <div class="name">{{ item.nickname || '用户' }}</div>
+          <div class="desc">{{ item.relationName || '关系' }}</div>
         </div>
-        <div class="action" v-if="currentTab===1 && item.status === 0">
-           <button size="mini" type="primary">接受</button>
+        <div class="action" v-if="currentTab === 1 && item.status === 0">
+           <button size="mini" type="primary" @click="acceptInvite(item.id)">接受</button>
         </div>
+      </div>
+      <div class="empty-tip" v-if="listData.length === 0">
+        暂无数据
       </div>
     </div>
 
     <div class="fab" @click="goAdd">
-      <text class="fab">+</text>
+      <text class="fab-text">+</text>
     </div>
   </div>
 </template>
 
 <script>
+import request from '@/utils/request';
+import { RelationStatus } from '@/utils/constants';
+
 export default {
   data() {
     return {
       currentTab: 0,
-      mySupervised: [
-         { name: '宝贝', desc: '关联时间: 2025-01-01', avatar: '' }
-      ],
-      supervisedBy: [
-         { name: '老公', desc: '关联时间: 2025-01-02', avatar: '' }
-      ]
+      mySupervised: [],   // 我监督的（我是childId）
+      supervisedBy: []    // 监督我的（我是elderId）
     };
   },
   computed: {
@@ -42,7 +44,62 @@ export default {
       return this.currentTab === 0 ? this.mySupervised : this.supervisedBy;
     }
   },
+  onShow() {
+    this.fetchRelations();
+  },
   methods: {
+    switchTab(index) {
+      this.currentTab = index;
+    },
+    async fetchRelations() {
+      try {
+        const userId = uni.getStorageSync('user')?.id;
+        if (!userId) return;
+        
+        const relations = await request({
+          url: '/relation/myRelations',
+          data: { userId }
+        });
+        
+        // 分类：我监督的 vs 监督我的
+        this.mySupervised = relations
+          .filter(r => r.childId === userId)
+          .map(r => ({
+            id: r.id,
+            userId: r.elderId,
+            nickname: r.elderNickname || `用户${r.elderId}`,
+            avatar: r.elderAvatar || '',
+            relationName: r.relationName || '关系',
+            status: r.status
+          }));
+        
+        this.supervisedBy = relations
+          .filter(r => r.elderId === userId)
+          .map(r => ({
+            id: r.id,
+            userId: r.childId,
+            nickname: r.childNickname || `用户${r.childId}`,
+            avatar: r.childAvatar || '',
+            relationName: r.relationName || '关系',
+            status: r.status
+          }));
+      } catch (e) {
+        console.error('获取关系列表失败', e);
+      }
+    },
+    async acceptInvite(relationId) {
+      try {
+        await request({
+          url: '/relation/accept',
+          method: 'POST',
+          data: { id: relationId }
+        });
+        uni.showToast({ title: '已接受', icon: 'success' });
+        this.fetchRelations();
+      } catch (e) {
+        console.error('接受邀请失败', e);
+      }
+    },
     goAdd() {
       uni.navigateTo({ url: '/pages/relation/add' });
     }
@@ -116,6 +173,12 @@ export default {
   color: #999;
   margin-top: 6rpx;
 }
+.empty-tip {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
 .fab {
   position: fixed;
   right: 40rpx;
@@ -130,5 +193,10 @@ export default {
   align-items: center;
   font-size: 60rpx;
   box-shadow: 0 10rpx 30rpx rgba(104, 255, 180, 0.5);
+}
+.fab-text {
+  font-size: 60rpx;
+  color: #fff;
+  line-height: 1;
 }
 </style>

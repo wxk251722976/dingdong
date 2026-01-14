@@ -22,7 +22,7 @@
       <div class="menu-item" @click="navTo('/pages/supervisor/index')">
         <div class="menu-left">
             <text class="icon">👀</text>
-            <text class="menu-text">监督中心 (临时入口)</text>
+            <text class="menu-text">监督中心</text>
         </div>
         <text class="arrow">></text>
       </div>

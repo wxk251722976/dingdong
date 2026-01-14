@@ -12,18 +12,18 @@
        <div class="section-title">{{ currentDate }} 的记录</div>
        
        <div class="timeline-item" v-for="(item, idx) in historyList" :key="idx">
-         <div class="time-col">{{ formatTime(item.task.remindTime) }}</div>
-         <div class="content-col" :class="{ missed: item.status === 'MISSED' }">
+         <div class="time-col">{{ formatTime(item.remindTime) }}</div>
+         <div class="content-col" :class="{ missed: item.status === 2 }">
             <div class="event-text">
-              <text class="bold">{{ item.task.title }}</text> 
-              <text v-if="item.status === 'COMPLETED'"> - 已完成 </text>
-              <text v-else-if="item.status === 'MISSED'"> - 未完成 </text>
+              <text class="bold">{{ item.title }}</text> 
+              <text v-if="item.status === 1"> - 已完成 </text>
+              <text v-else-if="item.status === 2"> - 未完成 </text>
               <text v-else> - 待进行 </text>
             </div>
          </div>
          <div class="status-col">
-           <text v-if="item.status === 'COMPLETED'" class="icon green">✅</text>
-           <text v-else-if="item.status === 'MISSED'" class="icon red">⚠️</text>
+           <text v-if="item.status === 1" class="icon green">✅</text>
+           <text v-else-if="item.status === 2" class="icon red">⚠️</text>
            <text v-else class="icon gray">⏳</text>
          </div>
        </div>
@@ -34,12 +34,7 @@
 </template>
 
 <script>
-// Make sure to install uni-calendar or remove if not available. 
-// Assuming standard uni-ui template or similar. If not, standard picker.
-// Since I don't see uni_modules in file list, I'll fallback to a simple date picker if calendar isn't there, 
-// but user asked for "Calendar View". I'll try to use standard picker for safety or just a header date.
-// Actually, let's stick to a simple date header for robustness if no uni-ui.
-// Re-writing template above to be safer without external components if not installed.
+import request from '@/utils/request';
 
 export default {
   data() {
@@ -57,8 +52,10 @@ export default {
     formatDate(date) {
         return date.toISOString().split('T')[0];
     },
-    formatTime(timeStr) {
-        return timeStr ? timeStr.substring(0, 5) : '--:--';
+    formatTime(remindTime) {
+        if (!remindTime) return '--:--';
+        const time = remindTime.split('T')[1];
+        return time ? time.substring(0, 5) : '--:--';
     },
     bindDateChange(e) {
         this.currentDate = e.detail.value;
@@ -67,19 +64,16 @@ export default {
     fetchHistory(date) {
         const userId = uni.getStorageSync('user')?.id || 1;
         uni.showLoading();
-        uni.request({
-            url: 'http://localhost:8080/task/daily',
-            method: 'GET',
-            data: { userId, date },
-            success: (res) => {
-                uni.hideLoading();
-                if (res.data.code === 200) {
-                    this.historyList = res.data.data;
-                }
-            },
-            fail: () => {
-                uni.hideLoading();
-            }
+        request({
+            url: '/task/daily',
+            data: { userId, date }
+        }).then(data => {
+            this.historyList = data || [];
+        }).catch(err => {
+            console.error(err);
+            this.historyList = [];
+        }).finally(() => {
+            uni.hideLoading();
         });
     }
   }

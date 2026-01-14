@@ -5,24 +5,27 @@
         <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
         <div class="info">
           <div class="name-row">
-            <text class="name">{{ item.name }}</text>
-            <text class="relation-badge">{{ item.relation }}</text>
+            <text class="name">{{ item.nickname || '用户' }}</text>
+            <text class="relation-badge">{{ item.relationName || '关系' }}</text>
           </div>
           <div class="status-row">
-            <template v-if="item.lastTaskStatus === 'DONE'">
+            <template v-if="item.todayStatus === 'COMPLETED'">
                <text class="status-icon green">✔️</text>
-               <text class="status-text green">{{ item.lastTaskName }}: 今天已完成</text>
+               <text class="status-text green">今日任务已完成</text>
             </template>
-            <template v-else-if="item.lastTaskStatus === 'MISSED'">
+            <template v-else-if="item.todayStatus === 'MISSED'">
                <text class="status-icon red">⚠️</text>
-               <text class="status-text red">{{ item.lastTaskName }}: 已错过</text>
+               <text class="status-text red">有任务已错过</text>
             </template>
             <template v-else>
                <text class="status-icon gray">⏳</text>
-               <text class="status-text gray">{{ item.lastTaskName }}: 等待中</text>
+               <text class="status-text gray">等待叮咚中</text>
             </template>
           </div>
         </div>
+      </div>
+      <div class="empty-tip" v-if="supervisedUsers.length === 0">
+        暂无监督对象，点击右下角添加
       </div>
     </div>
     
@@ -33,22 +36,74 @@
 </template>
 
 <script>
+import request from '@/utils/request';
+import { TaskStatus } from '@/utils/constants';
+
 export default {
   data() {
     return {
-      supervisedUsers: [
-        { name: '宝贝', relation: '情侣', avatar: '', lastTaskName: '喝水任务', lastTaskStatus: 'DONE' },
-        { name: '老妈', relation: '家人', avatar: '', lastTaskName: '运动任务', lastTaskStatus: 'MISSED' },
-        { name: '小李', relation: '挚友', avatar: '', lastTaskName: '早睡', lastTaskStatus: 'PENDING' }
-      ]
+      supervisedUsers: []
     };
   },
   onShow() {
-    // fetch data
+    this.fetchSupervisedUsers();
   },
   methods: {
+    async fetchSupervisedUsers() {
+      try {
+        const userId = uni.getStorageSync('user')?.id;
+        if (!userId) return;
+        
+        // 获取我监督的人（我是child/监督者）
+        const relations = await request({
+          url: '/relation/myRelations',
+          data: { userId }
+        });
+        
+        // 筛选出我作为监督者的关系（childId === userId）
+        const mySupervised = relations.filter(r => r.childId === userId);
+        
+        // 获取每个被监督者的今日任务状态
+        const users = [];
+        for (const relation of mySupervised) {
+          try {
+            // 获取被监督者信息
+            const tasks = await request({
+              url: '/task/daily',
+              data: { userId: relation.elderId }
+            });
+            
+            // 计算今日整体状态
+            let todayStatus = 'PENDING';
+            if (tasks.length > 0) {
+              const allCompleted = tasks.every(t => t.status === TaskStatus.COMPLETED.code);
+              const anyMissed = tasks.some(t => t.status === TaskStatus.MISSED.code);
+              if (allCompleted) {
+                todayStatus = 'COMPLETED';
+              } else if (anyMissed) {
+                todayStatus = 'MISSED';
+              }
+            }
+            
+            users.push({
+              id: relation.elderId,
+              nickname: relation.elderNickname || `用户${relation.elderId}`,
+              avatar: relation.elderAvatar || '',
+              relationName: relation.relationName || '关系',
+              todayStatus
+            });
+          } catch (e) {
+            console.error('获取用户任务失败', e);
+          }
+        }
+        
+        this.supervisedUsers = users;
+      } catch (e) {
+        console.error('获取监督列表失败', e);
+      }
+    },
     viewDetail(item) {
-      // Go to detail or history
+      uni.navigateTo({ url: `/pages/history/index?userId=${item.id}` });
     },
     addTask() {
       uni.navigateTo({ url: '/pages/task/add' });
@@ -114,11 +169,17 @@ export default {
 .green { color: #07c160; }
 .red { color: #fa5151; }
 .gray { color: #999; }
+.empty-tip {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
 
 .fab {
   position: fixed;
   right: 40rpx;
-  bottom: 60rpx; /* Safe area handled by OS mostly, but adding margin */
+  bottom: 60rpx;
   width: 110rpx;
   height: 110rpx;
   border-radius: 50%;

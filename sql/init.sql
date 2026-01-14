@@ -85,8 +85,8 @@ CREATE TABLE `check_in_task` (
   `creator_id` bigint(20) DEFAULT NULL COMMENT '创建者ID',
   `user_id` bigint(20) NOT NULL COMMENT '目标用户ID',
   `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务标题',
-  `remind_time` time DEFAULT NULL COMMENT '提醒时间',
-  `repeat_days` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '重复规则 1,2,3,4,5',
+  `remind_time` datetime DEFAULT NULL COMMENT '提醒时间',
+  `repeat_type` tinyint(4) DEFAULT 1 COMMENT '重复类型: 0-单次, 1-每天, 2-工作日, 3-周末',
   `status` tinyint(4) DEFAULT 1 COMMENT '状态: 1-启用, 0-停用',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `create_by` bigint(0) NULL DEFAULT NULL COMMENT '创建人ID',
@@ -96,6 +96,6 @@ CREATE TABLE `check_in_task` (
   `update_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '更新人名称',
   `deleted` bit(1) NULL DEFAULT b'0' COMMENT '逻辑删除: 0-未删除, 1-已删除',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_general_ci COMMENT='打卡任务表' ROW_FORMAT = Dynamic;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_general_ci COMMENT='叮咚任务表' ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;

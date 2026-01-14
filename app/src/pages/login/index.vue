@@ -5,35 +5,43 @@
 			<div class="title">DingDong</div>
 			<div class="subtitle">家庭关爱提醒助手</div>
 		</div>
-
-		<div v-if="!hasRole" class="auth-section">
-			<button class="login-btn" type="primary" @click="handleLogin">微信一键登录</button>
+		
+		<!-- 邀请提示 -->
+		<div class="invite-banner" v-if="inviteInfo">
+			<text class="invite-text">{{ inviteInfo.nickname }} 邀请你成为{{ inviteInfo.relationName }}</text>
 		</div>
 
-		<div v-else class="role-section">
-			<div class="role-title">请选择您的身份</div>
-			<div class="role-cards">
-				<div class="role-card elder" @click="selectRole('ELDER')">
-					<div class="icon">👴</div>
-					<div class="text">我是长辈</div>
-					<div class="desc">打卡吃药</div>
-				</div>
-				<div class="role-card child" @click="selectRole('CHILD')">
-					<div class="icon">👶</div>
-					<div class="text">我是子女</div>
-					<div class="desc">查看记录</div>
-				</div>
-			</div>
+		<div class="auth-section">
+			<button class="login-btn" type="primary" @click="handleLogin">微信一键登录</button>
 		</div>
 	</div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import request from '@/utils/request';
 
-const hasRole = ref(false);
-const userInfo = ref(null);
+const inviteInfo = ref(null);
+const inviteUserId = ref(null);
+const inviteRelationName = ref(null);
+
+onMounted(() => {
+	// 解析邀请参数
+	const pages = getCurrentPages();
+	const currentPage = pages[pages.length - 1];
+	const options = currentPage?.options || {};
+	
+	if (options.inviteUserId) {
+		inviteUserId.value = options.inviteUserId;
+		inviteRelationName.value = options.relationName || '好友';
+		
+		// 显示邀请信息
+		inviteInfo.value = {
+			nickname: `用户${options.inviteUserId}`,
+			relationName: inviteRelationName.value
+		};
+	}
+});
 
 const handleLogin = () => {
 	uni.login({
@@ -46,51 +54,39 @@ const handleLogin = () => {
 						method: 'POST',
 						data: {
 							code: res.code,
-							nickname: '微信用户', // 简化，实际应展示简易输入框或获取个人信息
+							nickname: '微信用户',
 							avatar: ''
 						}
 					});
-					userInfo.value = user;
-					uni.setStorageSync('token', user.openid); // 简化，使用openid作为token
+					uni.setStorageSync('token', user.openid);
 					uni.setStorageSync('user', user);
 					
-					if (user.role) {
-						redirect(user.role);
-					} else {
-						hasRole.value = true; // 显示角色选择
+					// 如果是被邀请的用户，自动建立关系
+					if (inviteUserId.value) {
+						try {
+							await request({
+								url: '/relation/invite',
+								method: 'POST',
+								data: {
+									elderId: user.id,  // 被邀请者成为被监督者
+									childId: inviteUserId.value,  // 邀请者成为监督者
+									relationName: inviteRelationName.value
+								}
+							});
+							uni.showToast({ title: '已接受邀请', icon: 'success' });
+						} catch (e) {
+							console.error('建立关系失败', e);
+						}
 					}
+					
+					// 跳转到主页
+					uni.switchTab({ url: '/pages/elder/index' });
 				} catch (e) {
 					console.error(e);
 				}
 			}
 		}
 	});
-};
-
-const selectRole = async (role) => {
-	try {
-		await request({
-			url: '/auth/switchRole',
-			method: 'POST',
-			data: {
-				userId: userInfo.value.id,
-				role: role
-			}
-		});
-		userInfo.value.role = role;
-		uni.setStorageSync('user', userInfo.value);
-		redirect(role);
-	} catch (e) {
-		console.error(e);
-	}
-};
-
-const redirect = (role) => {
-	if (role === 'ELDER') {
-		uni.switchTab({ url: '/pages/elder/index' });
-	} else if (role === 'CHILD') {
-		uni.switchTab({ url: '/pages/child/index' });
-	}
 };
 </script>
 
@@ -106,7 +102,7 @@ const redirect = (role) => {
 
 .header {
 	margin-top: 60px;
-	margin-bottom: 60px;
+	margin-bottom: 40px;
 	text-align: center;
 }
 
@@ -130,6 +126,20 @@ const redirect = (role) => {
 	color: #999;
 }
 
+.invite-banner {
+	background: linear-gradient(135deg, #68FFB4 0%, #4de3a0 100%);
+	padding: 16px 24px;
+	border-radius: 12px;
+	margin-bottom: 40px;
+	width: 80%;
+	text-align: center;
+}
+.invite-text {
+	color: #333;
+	font-size: 16px;
+	font-weight: bold;
+}
+
 .login-btn {
 	width: 80%;
 	height: 50px;
@@ -148,65 +158,5 @@ const redirect = (role) => {
 	width: 100%;
 	display: flex;
 	justify-content: center;
-}
-
-.role-section {
-	width: 100%;
-}
-
-.role-title {
-	text-align: center;
-	font-size: 20px;
-	font-weight: bold;
-	margin-bottom: 30px;
-	color: #333;
-}
-
-.role-cards {
-	display: flex;
-	justify-content: space-around;
-	gap: 20px;
-}
-
-.role-card {
-	flex: 1;
-	background: #f8f8f8;
-	border-radius: 16px;
-	padding: 20px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-	transition: all 0.3s;
-}
-
-.role-card:active {
-	opacity: 0.8;
-	transform: scale(0.98);
-}
-
-.role-card.elder {
-	background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-}
-
-.role-card.child {
-	background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-}
-
-.icon {
-	font-size: 40px;
-	margin-bottom: 10px;
-}
-
-.text {
-	font-size: 18px;
-	font-weight: bold;
-	color: #333;
-	margin-bottom: 4px;
-}
-
-.desc {
-	font-size: 12px;
-	color: #666;
 }
 </style>

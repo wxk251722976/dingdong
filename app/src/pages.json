@@ -3,7 +3,7 @@
         {
             "path": "pages/elder/index",
             "style": {
-                "navigationBarTitleText": "打卡",
+                "navigationBarTitleText": "叮咚",
                 "enablePullDownRefresh": true
             }
         },
@@ -64,7 +64,7 @@
         "list": [
             {
                 "pagePath": "pages/elder/index",
-                "text": "打卡",
+                "text": "叮咚",
                 "iconPath": "static/tab/check.png",
                 "selectedIconPath": "static/tab/check-active.png"
             },
