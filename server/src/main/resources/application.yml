@@ -28,3 +28,7 @@ wechat:
   appid: ${WECHAT_APPID:wx795c5d8116f6f996}
   secret: ${WECHAT_SECRET:6955e494a9e64bc4e06e57c489021132}
   api-url: https://api.weixin.qq.com/sns/jscode2session
+
+jwt:
+  secret: 81e5b1e6c30e0e92118a8eb8a005d4a8001162db217d9a505393434cd178b024  # JWT 密钥（至少32字符）
+  expiration: 604800000  # Token 有效期（毫秒，默认7天）

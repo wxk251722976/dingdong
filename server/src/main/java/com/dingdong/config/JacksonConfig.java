@@ -1,52 +1,66 @@
 package com.dingdong.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 
 /**
- * Jackson JSON 序列化配置
+ * Jackson配置类
+ * 1. 解决Long类型精度丢失问题（序列化为String）
+ * 2. 将LocalDateTime/LocalDate序列化为时间戳（毫秒）
  */
 @Configuration
 public class JacksonConfig {
 
-    private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
-    private static final String DATE_PATTERN = "yyyy-MM-dd";
-
     @Bean
-    public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
-        ObjectMapper objectMapper = builder.createXmlMapper(false).build();
+    public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer() {
+        return builder -> builder
+                // Long类型序列化为String，防止精度丢失
+                .serializerByType(Long.class, ToStringSerializer.instance)
+                .serializerByType(Long.TYPE, ToStringSerializer.instance)
+                // LocalDateTime序列化为时间戳（毫秒）
+                .serializerByType(LocalDateTime.class, new LocalDateTimeToTimestampSerializer())
+                // LocalDate序列化为时间戳（毫秒，取当天0点）
+                .serializerByType(LocalDate.class, new LocalDateToTimestampSerializer());
+    }
 
-        // Long 类型转 String（解决前端 JavaScript 精度丢失问题）
-        SimpleModule simpleModule = new SimpleModule();
-        simpleModule.addSerializer(Long.class, ToStringSerializer.instance);
-        simpleModule.addSerializer(Long.TYPE, ToStringSerializer.instance);
-        objectMapper.registerModule(simpleModule);
+    /**
+     * LocalDateTime -> 时间戳（毫秒）
+     */
+    public static class LocalDateTimeToTimestampSerializer extends JsonSerializer<LocalDateTime> {
+        @Override
+        public void serialize(LocalDateTime value, JsonGenerator gen, SerializerProvider serializers)
+                throws IOException {
+            if (value != null) {
+                long timestamp = value.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                gen.writeNumber(timestamp);
+            } else {
+                gen.writeNull();
+            }
+        }
+    }
 
-        // 日期时间格式化
-        JavaTimeModule javaTimeModule = new JavaTimeModule();
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DATE_TIME_PATTERN);
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(DATE_PATTERN);
-
-        javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(dateTimeFormatter));
-        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(dateTimeFormatter));
-        javaTimeModule.addSerializer(LocalDate.class, new LocalDateSerializer(dateFormatter));
-        javaTimeModule.addDeserializer(LocalDate.class, new LocalDateDeserializer(dateFormatter));
-
-        objectMapper.registerModule(javaTimeModule);
-
-        return objectMapper;
+    /**
+     * LocalDate -> 时间戳（毫秒，取当天0点）
+     */
+    public static class LocalDateToTimestampSerializer extends JsonSerializer<LocalDate> {
+        @Override
+        public void serialize(LocalDate value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            if (value != null) {
+                long timestamp = value.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                gen.writeNumber(timestamp);
+            } else {
+                gen.writeNull();
+            }
+        }
     }
 }

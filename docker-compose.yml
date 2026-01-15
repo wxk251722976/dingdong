@@ -53,8 +53,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-dingdong}
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
       # 微信小程序配置
-      WECHAT_APPID: ${WECHAT_APPID:-your_appid}
-      WECHAT_SECRET: ${WECHAT_SECRET:-your_secret}
+      WECHAT_APPID: ${WECHAT_APPID:-wx795c5d8116f6f996}
+      WECHAT_SECRET: ${WECHAT_SECRET:-6955e494a9e64bc4e06e57c489021132}
       # Spring 配置
       SPRING_PROFILES_ACTIVE: docker
     ports:

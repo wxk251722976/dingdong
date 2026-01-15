@@ -26,4 +26,22 @@ public interface ICheckInTaskService extends IService<CheckInTask> {
      * 创建新任务
      */
     boolean createTask(TaskDTO taskDTO);
+
+    /**
+     * 获取用户每日任务及完成状态（限定创建者）
+     *
+     * @param userId    用户ID
+     * @param date      日期
+     * @param creatorId 创建者ID
+     * @return 任务状态列表
+     */
+    List<DailyTaskStatusDTO> getDailyTaskStatusByCreator(Long userId, LocalDate date, Long creatorId);
+
+    /**
+     * 获取监督用户的今日状态列表
+     *
+     * @param supervisorId 监督者ID
+     * @return 用户状态列表
+     */
+    List<com.dingdong.dto.checkin.SupervisedUserStatusDTO> getSupervisedUserStatusList(Long supervisorId);
 }

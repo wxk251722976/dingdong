@@ -2,6 +2,7 @@ package com.dingdong.dto.auth;
 
 import lombok.Data;
 import java.io.Serializable;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * 登录请求参数 DTO
@@ -13,7 +14,7 @@ public class LoginDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** 微信登录code */
-    @jakarta.validation.constraints.NotBlank(message = "code不能为空")
+    @NotBlank(message = "code不能为空")
     private String code;
 
     /** 用户昵称 */

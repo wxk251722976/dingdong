@@ -15,7 +15,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE `sys_user`  (
-  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `id` bigint(0) NOT NULL COMMENT '主键ID',
   `openid` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '微信OpenID',
   `nickname` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '昵称',
   `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '头像URL',
@@ -36,11 +36,11 @@ CREATE TABLE `sys_user`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `check_in_log`;
 CREATE TABLE `check_in_log`  (
-  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `id` bigint(0) NOT NULL COMMENT '主键ID',
   `user_id` bigint(0) NOT NULL COMMENT '用户ID',
   `task_id` bigint(0) DEFAULT NULL COMMENT '关联的任务ID',
   `check_time` datetime(0) NOT NULL COMMENT '打卡时间',
-  `status` int(0) NULL DEFAULT 1 COMMENT '状态: 1-正常, 2-补打卡',
+  `status` tinyint(1) NULL DEFAULT 1 COMMENT '状态: 1-正常, 2-补打卡, 3-未打卡',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `create_by` bigint(0) NULL DEFAULT NULL COMMENT '创建人ID',
   `create_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人名称',
@@ -57,9 +57,9 @@ CREATE TABLE `check_in_log`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `user_relation`;
 CREATE TABLE `user_relation`  (
-  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `elder_id` bigint(0) DEFAULT NULL COMMENT '被监督者ID(老人)',
-  `child_id` bigint(0) DEFAULT NULL COMMENT '监督者ID(子女)',
+  `id` bigint(0) NOT NULL COMMENT '主键ID',
+  `supervised_id` bigint(0) DEFAULT NULL COMMENT '被监督者ID',
+  `supervisor_id` bigint(0) DEFAULT NULL COMMENT '监督者ID',
   `relation_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '关系名称',
   `status` tinyint(4) DEFAULT 0 COMMENT '状态: 0-待确认, 1-已确认',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
@@ -70,10 +70,8 @@ CREATE TABLE `user_relation`  (
   `update_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '更新人名称',
   `deleted` bit(1) NULL DEFAULT b'0' COMMENT '逻辑删除: 0-未删除, 1-已删除',
   PRIMARY KEY (`id`) USING BTREE,
-  -- Removed unique index uk_relation based on new requirements if needed, keeping for consistency but might clash if multiple relations allowed? 
-  -- Assuming one relation per pair for now.
-  UNIQUE INDEX `uk_relation`(`elder_id`, `child_id`) USING BTREE, 
-  INDEX `idx_child_id`(`child_id`) USING BTREE
+  UNIQUE INDEX `uk_relation`(`supervised_id`, `supervisor_id`) USING BTREE, 
+  INDEX `idx_supervisor_id`(`supervisor_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户关系表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -81,7 +79,7 @@ CREATE TABLE `user_relation`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `check_in_task`;
 CREATE TABLE `check_in_task` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `id` bigint(20) NOT NULL COMMENT '主键ID',
   `creator_id` bigint(20) DEFAULT NULL COMMENT '创建者ID',
   `user_id` bigint(20) NOT NULL COMMENT '目标用户ID',
   `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务标题',

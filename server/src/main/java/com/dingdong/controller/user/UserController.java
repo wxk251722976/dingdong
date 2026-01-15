@@ -1,6 +1,7 @@
 package com.dingdong.controller.user;
 
 import com.dingdong.common.Result;
+import com.dingdong.common.context.SystemContextHolder;
 import com.dingdong.dto.user.UserProfileDTO;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.service.user.ISysUserService;
@@ -22,7 +23,7 @@ public class UserController {
      */
     @PostMapping("/updateProfile")
     public Result<Void> updateProfile(@RequestBody UserProfileDTO userDto) {
-        Long userId = userDto.getUserId();
+        Long userId = SystemContextHolder.getUserId();
 
         SysUser user = sysUserService.getById(userId);
         if (user == null) {
@@ -37,10 +38,11 @@ public class UserController {
     }
 
     /**
-     * 获取用户信息
+     * 获取当前用户信息
      */
     @GetMapping("/info")
-    public Result<SysUser> getUserInfo(@RequestParam Long userId) {
+    public Result<SysUser> getUserInfo() {
+        Long userId = SystemContextHolder.getUserId();
         SysUser user = sysUserService.getById(userId);
         if (user == null) {
             return Result.error("用户不存在");

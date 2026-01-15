@@ -4,17 +4,15 @@ import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.dingdong.common.constant.UserRole;
+import com.dingdong.common.constant.UserConstants;
+import com.dingdong.common.exception.ServiceException;
 import com.dingdong.dto.auth.LoginDTO;
-import com.dingdong.dto.user.RoleSwitchDTO;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.mapper.user.SysUserMapper;
 import com.dingdong.service.user.ISysUserService;
-import com.dingdong.common.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -36,6 +34,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Value("${wechat.api-url}")
     private String apiUrl;
+
+    private final com.dingdong.service.user.IUserLevelConfigService levelConfigService;
+
+    public SysUserServiceImpl(
+            @org.springframework.context.annotation.Lazy com.dingdong.service.user.IUserLevelConfigService levelConfigService) {
+        this.levelConfigService = levelConfigService;
+    }
 
     @Override
     public SysUser loginOrRegister(LoginDTO loginDTO) {
@@ -64,6 +69,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             user.setNickname(loginDTO.getNickname());
             user.setAvatar(loginDTO.getAvatar());
             user.setCreateTime(LocalDateTime.now());
+            user.setLevelCode(UserConstants.DEFAULT_LEVEL_CODE);
             // 默认无角色，需选择
             this.save(user);
         } else {
@@ -81,24 +87,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 this.updateById(user);
             }
         }
+
+        // 填充等级名称
+        var config = levelConfigService.getUserLevelConfig(user.getId());
+        if (config != null) {
+            user.setLevelName(config.getLevelName());
+        }
+
         return user;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean switchRole(RoleSwitchDTO roleSwitchDTO) {
-        SysUser user = this.getById(roleSwitchDTO.getUserId());
-        if (user == null) {
-            throw new ServiceException("用户不存在");
-        }
-        // 校验角色合法性
-        try {
-            UserRole.valueOf(roleSwitchDTO.getRole());
-        } catch (IllegalArgumentException e) {
-            throw new ServiceException("无效的角色类型");
-        }
-
-        user.setRole(roleSwitchDTO.getRole());
-        return this.updateById(user);
     }
 }

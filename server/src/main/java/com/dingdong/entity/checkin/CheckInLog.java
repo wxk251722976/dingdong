@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @TableName("check_in_log")
 public class CheckInLog extends BaseEntity {
     /** 主键ID */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /** 用户ID */

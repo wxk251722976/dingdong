@@ -7,13 +7,16 @@
 
     <div class="list-content">
       <div class="user-item" v-for="(item, index) in listData" :key="index">
-        <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
+        <image class="avatar" :src="item.otherAvatar || '/static/logo.png'" mode="aspectFill" @error="handleImgError(index)"></image>
         <div class="info">
-          <div class="name">{{ item.nickname || '用户' }}</div>
+          <div class="name">{{ item.otherNickname || '用户' }}</div>
           <div class="desc">{{ item.relationName || '关系' }}</div>
         </div>
         <div class="action" v-if="currentTab === 1 && item.status === 0">
            <button size="mini" type="primary" @click="acceptInvite(item.id)">接受</button>
+        </div>
+        <div class="status-tag" v-else-if="item.status === 0">
+          <text class="pending">待确认</text>
         </div>
       </div>
       <div class="empty-tip" v-if="listData.length === 0">
@@ -21,7 +24,8 @@
       </div>
     </div>
 
-    <div class="fab" @click="goAdd">
+    <!-- 只在"我监督的"标签页显示添加按钮 -->
+    <div class="fab" @click="goAdd" v-if="currentTab === 0">
       <text class="fab-text">+</text>
     </div>
   </div>
@@ -29,19 +33,23 @@
 
 <script>
 import request from '@/utils/request';
-import { RelationStatus } from '@/utils/constants';
 
 export default {
   data() {
     return {
       currentTab: 0,
-      mySupervised: [],   // 我监督的（我是childId）
-      supervisedBy: []    // 监督我的（我是elderId）
+      relations: []
     };
   },
   computed: {
     listData() {
-      return this.currentTab === 0 ? this.mySupervised : this.supervisedBy;
+      if (this.currentTab === 0) {
+        // 我监督的（我是supervisor）
+        return this.relations.filter(r => r.role === 'SUPERVISOR');
+      } else {
+        // 监督我的（我是supervised）
+        return this.relations.filter(r => r.role === 'SUPERVISED');
+      }
     }
   },
   onShow() {
@@ -53,36 +61,12 @@ export default {
     },
     async fetchRelations() {
       try {
-        const userId = uni.getStorageSync('user')?.id;
-        if (!userId) return;
-        
+        // 使用新的带用户信息的接口
         const relations = await request({
-          url: '/relation/myRelations',
-          data: { userId }
+          url: '/relation/listWithUserInfo'
         });
         
-        // 分类：我监督的 vs 监督我的
-        this.mySupervised = relations
-          .filter(r => r.childId === userId)
-          .map(r => ({
-            id: r.id,
-            userId: r.elderId,
-            nickname: r.elderNickname || `用户${r.elderId}`,
-            avatar: r.elderAvatar || '',
-            relationName: r.relationName || '关系',
-            status: r.status
-          }));
-        
-        this.supervisedBy = relations
-          .filter(r => r.elderId === userId)
-          .map(r => ({
-            id: r.id,
-            userId: r.childId,
-            nickname: r.childNickname || `用户${r.childId}`,
-            avatar: r.childAvatar || '',
-            relationName: r.relationName || '关系',
-            status: r.status
-          }));
+        this.relations = relations || [];
       } catch (e) {
         console.error('获取关系列表失败', e);
       }
@@ -102,6 +86,9 @@ export default {
     },
     goAdd() {
       uni.navigateTo({ url: '/pages/relation/add' });
+    },
+    handleImgError(index) {
+      // 图片加载失败时使用默认头像
     }
   }
 }
@@ -172,6 +159,13 @@ export default {
   font-size: 24rpx;
   color: #999;
   margin-top: 6rpx;
+}
+.status-tag .pending {
+  font-size: 22rpx;
+  color: #FF9800;
+  background-color: rgba(255, 152, 0, 0.1);
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
 }
 .empty-tip {
   text-align: center;

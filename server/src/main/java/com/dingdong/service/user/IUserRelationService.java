@@ -15,20 +15,20 @@ import java.util.List;
 public interface IUserRelationService extends IService<UserRelation> {
 
     /**
-     * 获取指定子女绑定的所有老人
+     * 获取指定监督者绑定的所有被监督者
      * 
-     * @param childId 子女ID
-     * @return 老人用户列表
+     * @param supervisorId 监督者ID
+     * @return 被监督者用户列表
      */
-    List<SysUser> getEldersByChildId(Long childId);
+    List<SysUser> getSupervisedListBySupervisorId(Long supervisorId);
 
     /**
-     * 绑定老人与子女关系
+     * 绑定被监督者与监督者关系
      * 
      * @param bindDTO 绑定请求
      * @return 成功返回 true
      */
-    boolean bindElder(BindDTO bindDTO);
+    boolean bindSupervised(BindDTO bindDTO);
 
     /**
      * 获取用户的所有关系（包括我监督的和监督我的）

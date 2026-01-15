@@ -8,8 +8,9 @@
  */
 export const TaskStatus = {
     PENDING: { code: 0, desc: '待完成' },
-    COMPLETED: { code: 1, desc: '已完成' },
-    MISSED: { code: 2, desc: '已错过' }
+    NORMAL: { code: 1, desc: '已完成' },
+    LATE: { code: 2, desc: '补打卡' },
+    MISSED: { code: 3, desc: '已错过' }
 };
 
 /**

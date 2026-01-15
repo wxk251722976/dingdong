@@ -28,30 +28,30 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
     private final ISysUserService sysUserService;
 
     @Override
-    public List<SysUser> getEldersByChildId(Long childId) {
-        // 查询该子女绑定的所有关系
+    public List<SysUser> getSupervisedListBySupervisorId(Long supervisorId) {
+        // 查询该监督者绑定的所有关系
         List<UserRelation> relations = this.list(new LambdaQueryWrapper<UserRelation>()
-                .eq(UserRelation::getChildId, childId)
+                .eq(UserRelation::getSupervisorId, supervisorId)
                 .eq(UserRelation::getStatus, RelationStatus.CONFIRMED.getCode()));
 
         if (relations.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 提取老人ID列表并批量查询用户信息
-        List<Long> elderIds = relations.stream()
-                .map(UserRelation::getElderId)
+        // 提取被监督者ID列表并批量查询用户信息
+        List<Long> supervisedIds = relations.stream()
+                .map(UserRelation::getSupervisedId)
                 .collect(Collectors.toList());
 
-        return sysUserService.listByIds(elderIds);
+        return sysUserService.listByIds(supervisedIds);
     }
 
     @Override
-    public boolean bindElder(BindDTO bindDTO) {
+    public boolean bindSupervised(BindDTO bindDTO) {
         // 检查是否已存在绑定关系
         long count = this.count(new LambdaQueryWrapper<UserRelation>()
-                .eq(UserRelation::getChildId, bindDTO.getChildId())
-                .eq(UserRelation::getElderId, bindDTO.getElderId()));
+                .eq(UserRelation::getSupervisorId, bindDTO.getSupervisorId())
+                .eq(UserRelation::getSupervisedId, bindDTO.getSupervisedId()));
 
         if (count > 0) {
             throw new RuntimeException("关系已存在");
@@ -59,8 +59,8 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
 
         // 创建新的绑定关系，默认为已确认状态（直接绑定场景）
         UserRelation relation = new UserRelation();
-        relation.setChildId(bindDTO.getChildId());
-        relation.setElderId(bindDTO.getElderId());
+        relation.setSupervisorId(bindDTO.getSupervisorId());
+        relation.setSupervisedId(bindDTO.getSupervisedId());
         relation.setStatus(RelationStatus.CONFIRMED.getCode());
         return this.save(relation);
     }
@@ -69,9 +69,9 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
     public List<UserRelation> getMyRelations(Long userId) {
         // 查询用户作为监督者或被监督者的所有关系
         LambdaQueryWrapper<UserRelation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserRelation::getChildId, userId)
+        wrapper.eq(UserRelation::getSupervisorId, userId)
                 .or()
-                .eq(UserRelation::getElderId, userId);
+                .eq(UserRelation::getSupervisedId, userId);
         return this.list(wrapper);
     }
 

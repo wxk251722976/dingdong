@@ -1,7 +1,7 @@
 package com.dingdong.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
-import com.dingdong.common.context.LoginContext;
+import com.dingdong.common.context.SystemContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
@@ -25,14 +25,13 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, now);
         this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, now);
 
-        // 从登录上下文获取当前用户信息
-        Long currentUserId = Objects.requireNonNullElse(LoginContext.getCurrentUserId(), 0L);
-        String currentUserName = Objects.requireNonNullElse(LoginContext.getCurrentUserName(), "system");
+        // 从登录上下文获取当前用户ID
+        Long currentUserId = Objects.requireNonNullElse(SystemContextHolder.getUserId(), 0L);
 
         this.strictInsertFill(metaObject, "createBy", Long.class, currentUserId);
-        this.strictInsertFill(metaObject, "createName", String.class, currentUserName);
+        this.strictInsertFill(metaObject, "createName", String.class, "");
         this.strictInsertFill(metaObject, "updateBy", Long.class, currentUserId);
-        this.strictInsertFill(metaObject, "updateName", String.class, currentUserName);
+        this.strictInsertFill(metaObject, "updateName", String.class, "");
 
         // 默认未删除
         this.strictInsertFill(metaObject, "deleted", Integer.class, 0);
@@ -45,11 +44,10 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         // 填充更新时间
         this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
 
-        // 从登录上下文获取当前用户信息
-        Long currentUserId = Objects.requireNonNullElse(LoginContext.getCurrentUserId(), 0L);
-        String currentUserName = Objects.requireNonNullElse(LoginContext.getCurrentUserName(), "system");
+        // 从登录上下文获取当前用户ID
+        Long currentUserId = Objects.requireNonNullElse(SystemContextHolder.getUserId(), 0L);
 
         this.strictUpdateFill(metaObject, "updateBy", Long.class, currentUserId);
-        this.strictUpdateFill(metaObject, "updateName", String.class, currentUserName);
+        this.strictUpdateFill(metaObject, "updateName", String.class, "");
     }
 }

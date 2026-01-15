@@ -14,11 +14,14 @@ public enum TaskStatus {
     /** 待完成 - 任务尚未到提醒时间或正在等待执行 */
     PENDING(0, "待完成"),
 
-    /** 已完成 - 任务已被用户完成打卡 */
-    COMPLETED(1, "已完成"),
+    /** 正常完成 - 在规定时间内完成打卡 */
+    NORMAL(1, "正常打卡"),
 
-    /** 已错过 - 任务提醒时间已过但未完成 */
-    MISSED(2, "已错过");
+    /** 补打卡 - 超时但未过期的打卡 */
+    LATE(2, "补打卡"),
+
+    /** 已错过 - 超过最大打卡时限（30分钟） */
+    MISSED(3, "已错过");
 
     private final Integer code;
     private final String desc;

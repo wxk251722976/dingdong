@@ -49,7 +49,7 @@ const handleLogin = () => {
 		success: async (res) => {
 			if (res.code) {
 				try {
-					const user = await request({
+					const result = await request({
 						url: '/auth/login',
 						method: 'POST',
 						data: {
@@ -58,7 +58,12 @@ const handleLogin = () => {
 							avatar: ''
 						}
 					});
-					uni.setStorageSync('token', user.openid);
+					// result 包含 { user, token, refreshToken }
+					const { user, token, refreshToken } = result;
+					uni.setStorageSync('token', token);
+					if (refreshToken) {
+						uni.setStorageSync('refreshToken', refreshToken);
+					}
 					uni.setStorageSync('user', user);
 					
 					// 如果是被邀请的用户，自动建立关系
@@ -68,8 +73,8 @@ const handleLogin = () => {
 								url: '/relation/invite',
 								method: 'POST',
 								data: {
-									elderId: user.id,  // 被邀请者成为被监督者
-									childId: inviteUserId.value,  // 邀请者成为监督者
+									supervisedId: user.id,  // 被邀请者成为被监督者
+									supervisorId: inviteUserId.value,  // 邀请者成为监督者
 									relationName: inviteRelationName.value
 								}
 							});
@@ -80,7 +85,7 @@ const handleLogin = () => {
 					}
 					
 					// 跳转到主页
-					uni.switchTab({ url: '/pages/elder/index' });
+					uni.switchTab({ url: '/pages/home/index' });
 				} catch (e) {
 					console.error(e);
 				}

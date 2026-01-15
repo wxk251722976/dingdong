@@ -2,7 +2,6 @@ package com.dingdong.service.user;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.dingdong.dto.auth.LoginDTO;
-import com.dingdong.dto.user.RoleSwitchDTO;
 import com.dingdong.entity.user.SysUser;
 
 /**
@@ -19,12 +18,4 @@ public interface ISysUserService extends IService<SysUser> {
      * @return 登录后的用户信息
      */
     SysUser loginOrRegister(LoginDTO loginDTO);
-
-    /**
-     * 切换用户角色
-     * 
-     * @param roleSwitchDTO 角色切换参数 (userId, role)
-     * @return 操作结果
-     */
-    boolean switchRole(RoleSwitchDTO roleSwitchDTO);
 }

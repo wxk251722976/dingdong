@@ -13,14 +13,17 @@
        
        <div class="timeline-item" v-for="(item, idx) in historyList" :key="idx">
          <div class="time-col">{{ formatTime(item.remindTime) }}</div>
-         <div class="content-col" :class="{ missed: item.status === 2 }">
-            <div class="event-text">
-              <text class="bold">{{ item.title }}</text> 
-              <text v-if="item.status === 1"> - 已完成 </text>
-              <text v-else-if="item.status === 2"> - 未完成 </text>
-              <text v-else> - 待进行 </text>
-            </div>
-         </div>
+          <div class="content-col" :class="{ missed: item.status === 2 }">
+             <div class="event-text">
+               <text class="bold">{{ item.title }}</text> 
+               <div v-if="item.status === 1 || item.status === 2" style="font-size: 24rpx; color: #666; margin-top: 8rpx;">
+                 打卡时间: {{ formatTime(item.checkTime) }}
+               </div>
+               <div v-else-if="item.status === 3" style="font-size: 24rpx; color: #fa5151; margin-top: 8rpx;">
+                 未打卡
+               </div>
+             </div>
+          </div>
          <div class="status-col">
            <text v-if="item.status === 1" class="icon green">✅</text>
            <text v-else-if="item.status === 2" class="icon red">⚠️</text>

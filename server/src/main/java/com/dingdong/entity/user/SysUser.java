@@ -15,7 +15,7 @@ import lombok.EqualsAndHashCode;
 @TableName("sys_user")
 public class SysUser extends BaseEntity {
     /** 主键ID */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /** 微信OpenID */
@@ -27,6 +27,10 @@ public class SysUser extends BaseEntity {
     /** 头像URL */
     private String avatar;
 
-    /** 角色: ELDER-老人, CHILD-子女 */
-    private String role;
+    /** 用户等级编码 */
+    private String levelCode;
+
+    /** 等级名称（非数据库字段） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String levelName;
 }

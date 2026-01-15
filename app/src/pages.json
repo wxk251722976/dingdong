@@ -1,7 +1,7 @@
 {
     "pages": [
         {
-            "path": "pages/elder/index",
+            "path": "pages/home/index",
             "style": {
                 "navigationBarTitleText": "叮咚",
                 "enablePullDownRefresh": true
@@ -10,7 +10,7 @@
         {
             "path": "pages/supervisor/index",
             "style": {
-                "navigationBarTitleText": "监督列表"
+                "navigationBarTitleText": "任务管理"
             }
         },
         {
@@ -32,6 +32,18 @@
             }
         },
         {
+            "path": "pages/task/detail",
+            "style": {
+                "navigationBarTitleText": "任务详情"
+            }
+        },
+        {
+            "path": "pages/task/list",
+            "style": {
+                "navigationBarTitleText": "任务管理"
+            }
+        },
+        {
             "path": "pages/history/index",
             "style": {
                 "navigationBarTitleText": "历史记录"
@@ -48,6 +60,18 @@
             "style": {
                 "navigationBarTitleText": "登录"
             }
+        },
+        {
+            "path": "pages/feedback/index",
+            "style": {
+                "navigationBarTitleText": "帮助与反馈"
+            }
+        },
+        {
+            "path": "pages/stats/index",
+            "style": {
+                "navigationBarTitleText": "数据统计"
+            }
         }
     ],
     "globalStyle": {
@@ -63,7 +87,7 @@
         "borderStyle": "black",
         "list": [
             {
-                "pagePath": "pages/elder/index",
+                "pagePath": "pages/home/index",
                 "text": "叮咚",
                 "iconPath": "static/tab/check.png",
                 "selectedIconPath": "static/tab/check-active.png"

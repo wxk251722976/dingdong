@@ -28,14 +28,21 @@
           v-for="(item, index) in dailyTasks" 
           :key="index"
           :class="{ done: item.status === 1 }"
+          @click="goToTaskDetail(item)"
         >
           <div class="task-info">
             <div class="task-title">{{ item.title }}</div>
-            <div class="task-time">⏰ {{ formatTime(item.remindTime) }}</div>
+            <div class="task-time">
+                <text>⏰ {{ formatTime(item.remindTime) }}</text>
+                <text v-if="item.status > 0 && item.checkTime" style="margin-left: 20rpx; color: #07c160;">
+                    👀 打卡: {{ formatCheckInTime(item.checkTime) }}
+                </text>
+            </div>
           </div>
-          <div class="task-status">
+           <div class="task-status">
             <text v-if="item.status === 1" class="icon-done">✅</text>
-            <text v-else-if="item.status === 2" class="icon-missed">⚠️</text>
+            <text v-else-if="item.status === 2" class="icon-late">补</text>
+            <text v-else-if="item.status === 3" class="icon-missed">⚠️</text>
             <text v-else class="icon-pending">⭕</text>
           </div>
         </div>
@@ -54,6 +61,7 @@
 <script>
 import request from '@/utils/request';
 import { TaskStatus } from '@/utils/constants';
+import { formatTimestamp } from '@/utils/dateUtils';
 
 export default {
   data() {
@@ -66,7 +74,7 @@ export default {
   computed: {
     // 找到第一个待完成的任务
     currentTask() {
-      const pending = this.dailyTasks.find(t => t.status !== TaskStatus.COMPLETED.code);
+      const pending = this.dailyTasks.find(t => t.status === TaskStatus.PENDING.code);
       return pending || null;
     }
   },
@@ -89,16 +97,17 @@ export default {
     },
     formatTime(remindTime) {
       if (!remindTime) return '全天';
-      // remindTime格式: "2026-01-14T10:00:00"
-      const time = remindTime.split('T')[1];
-      return time ? time.substring(0, 5) : '全天';
+      // remindTime now is a timestamp (milliseconds)
+      return formatTimestamp(remindTime, 'time');
+    },
+    formatCheckInTime(checkTime) {
+      if (!checkTime) return '';
+      // checkTime now is a timestamp (milliseconds)
+      return formatTimestamp(checkTime, 'time');
     },
     fetchDailyTasks() {
-      const userId = uni.getStorageSync('user')?.id || 1; 
-      
       request({
-        url: '/task/daily',
-        data: { userId }
+        url: '/task/daily'
       }).then(data => {
         this.dailyTasks = data || [];
       }).catch(err => {
@@ -109,14 +118,12 @@ export default {
     handleCheckIn() {
       if (!this.currentTask) return;
       
-      const userId = uni.getStorageSync('user')?.id || 1;
       uni.showLoading({ title: '叮咚中...' });
       
       request({
         url: '/checkIn/do',
         method: 'POST',
         data: { 
-            userId,
             taskId: this.currentTask.taskId
         }
       }).then(() => {
@@ -131,6 +138,13 @@ export default {
     goToHistory() {
       uni.navigateTo({
         url: '/pages/history/index'
+      });
+    },
+    goToTaskDetail(item) {
+      // 跳转到任务详情页（只读）
+      const taskData = encodeURIComponent(JSON.stringify(item));
+      uni.navigateTo({
+        url: `/pages/task/detail?task=${taskData}`
       });
     }
   }
@@ -269,6 +283,18 @@ export default {
 
 .icon-missed {
   color: #fa5151;
+}
+
+.icon-late {
+  display: inline-block;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  background-color: #FF9800;
+  color: white;
+  border-radius: 50%;
+  font-size: 24rpx;
 }
 
 .empty-hint {

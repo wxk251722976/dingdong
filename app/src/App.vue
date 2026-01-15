@@ -1,14 +1,24 @@
 <script>
 	export default {
-		onLaunch: function() {
-			console.log('App Launch')
-			// Check login status
+		onLaunch: function(options) {
+			console.log('App Launch', options)
+			
+			const token = uni.getStorageSync('token');
 			const user = uni.getStorageSync('user');
-			if (user) {
-				if (user.role === 'ELDER') {
-					uni.reLaunch({ url: '/pages/elder/index' });
-				} else if (user.role === 'CHILD') {
+			
+			if (!token || !user) {
+				// 未登录，强制跳转到登录页
+				// 如果已经在登录页（例如通过分享进入），则不跳转以免丢失参数
+				const path = options && options.path ? options.path : '';
+				if (path.indexOf('pages/login/index') === -1) {
+					uni.reLaunch({ url: '/pages/login/index' });
+				}
+			} else {
+				// 已登录，根据角色跳转
+				if (user.role === 'CHILD') {
 					uni.reLaunch({ url: '/pages/supervisor/index' });
+				} else {
+					uni.reLaunch({ url: '/pages/home/index' });
 				}
 			}
 		},

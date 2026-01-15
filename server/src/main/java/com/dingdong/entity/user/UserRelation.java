@@ -15,14 +15,14 @@ import lombok.EqualsAndHashCode;
 @TableName("user_relation")
 public class UserRelation extends BaseEntity {
     /** 主键ID */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    /** 老人ID */
-    private Long elderId;
+    /** 被监督者ID */
+    private Long supervisedId;
 
-    /** 子女ID (监督者) */
-    private Long childId;
+    /** 监督者ID */
+    private Long supervisorId;
 
     /** 关系名称 (e.g. 情侣, 挚友) */
     private String relationName;
