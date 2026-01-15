@@ -48,9 +48,17 @@ public interface IUserRelationService extends IService<UserRelation> {
 
     /**
      * 接受绑定邀请
-     * 
+     *
      * @param relationId 关系记录ID
      * @return 是否成功
      */
     boolean acceptInvite(Long relationId);
+
+    /**
+     * 拒绝绑定邀请
+     *
+     * @param relationId 关系记录ID
+     * @return 是否成功
+     */
+    boolean rejectInvite(Long relationId);
 }

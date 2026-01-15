@@ -26,21 +26,33 @@
     </div>
 
     <div class="tip-text">
-      选择关系后，点击上方分享邀请链接，好友打开后登录即可完成绑定
+      选择关系后，点击下方按钮分享给好友，好友可以选择接受或拒绝绑定
     </div>
     
-    <!-- 分享按钮（隐藏，通过button触发） -->
-    <button class="share-btn" open-type="share">立即分享给好友</button>
+    <!-- 分享按钮 -->
+    <button class="share-btn" open-type="share" @click="prepareShare">立即分享给好友</button>
   </div>
 </template>
 
 <script>
+import request from '@/utils/request';
+
 export default {
   data() {
     return {
       tags: ['情侣', '挚友', '家人', '自定义'],
-      selectedTag: 0
+      selectedTag: 0,
+      activityId: null,
+      isPreparingShare: false
     }
+  },
+  onLoad() {
+    // 页面加载时预先获取activityId
+    this.fetchActivityId();
+  },
+  onShow() {
+    // 每次显示页面时更新分享菜单
+    this.updateShareMenu();
   },
   // 配置分享内容
   onShareAppMessage() {
@@ -48,15 +60,75 @@ export default {
     const nickname = uni.getStorageSync('user')?.nickname || '好友';
     return {
       title: `${nickname}邀请你一起使用叮咚`,
-      path: `/pages/login/index?inviteUserId=${userId}&relationName=${this.tags[this.selectedTag]}`,
+      path: `/pages/relation/confirm?inviteUserId=${userId}&relationName=${encodeURIComponent(this.tags[this.selectedTag])}&activityId=${this.activityId || ''}`,
       imageUrl: '/static/share-cover.png'
     };
   },
   methods: {
+    // 获取动态消息活动ID
+    async fetchActivityId() {
+      try {
+        const result = await request({
+          url: '/wechat/createActivityId',
+          method: 'POST'
+        });
+        this.activityId = result.activityId;
+        console.log('获取到activityId:', this.activityId);
+        // 获取到ID后更新分享菜单
+        this.updateShareMenu();
+      } catch (e) {
+        console.error('获取activityId失败:', e);
+        // 失败时使用普通分享
+      }
+    },
+    
+    // 更新分享菜单，声明为动态消息
+    updateShareMenu() {
+      if (!this.activityId) {
+        return;
+      }
+      
+      // #ifdef MP-WEIXIN
+      wx.updateShareMenu({
+        withShareTicket: true,
+        isUpdatableMessage: true,
+        activityId: this.activityId,
+        templateInfo: {
+          parameterList: [
+            {
+              name: 'member_count',
+              value: '1'
+            },
+            {
+              name: 'room_limit',
+              value: '2'
+            }
+          ]
+        },
+        success: () => {
+          console.log('动态消息分享菜单更新成功');
+        },
+        fail: (err) => {
+          console.error('更新分享菜单失败:', err);
+        }
+      });
+      // #endif
+    },
+    
+    // 准备分享（点击按钮时）
+    async prepareShare() {
+      // 如果没有activityId，尝试重新获取
+      if (!this.activityId && !this.isPreparingShare) {
+        this.isPreparingShare = true;
+        await this.fetchActivityId();
+        this.isPreparingShare = false;
+      }
+    },
+    
     shareInvite() {
       uni.showModal({
         title: '分享邀请',
-        content: '请点击下方"立即分享给好友"按钮，或点击右上角"..."选择"发送给朋友"',
+        content: '请点击下方"立即分享给好友"按钮，分享动态消息给好友。好友点击后可以选择接受或拒绝绑定。',
         confirmText: '我知道了',
         showCancel: false
       });

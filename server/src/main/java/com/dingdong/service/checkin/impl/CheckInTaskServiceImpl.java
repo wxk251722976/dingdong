@@ -127,11 +127,11 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
      */
     @Override
     public List<SupervisedUserStatusDTO> getSupervisedUserStatusList(Long supervisorId) {
-        // ==================== 第1次查询：获取已确认的监督关系 ====================
+        // ==================== 第1次查询：获取已接受的监督关系 ====================
         List<UserRelation> relations = userRelationService.list(
                 new LambdaQueryWrapper<UserRelation>()
                         .eq(UserRelation::getSupervisorId, supervisorId)
-                        .eq(UserRelation::getStatus, RelationStatus.CONFIRMED.getCode()));
+                        .eq(UserRelation::getStatus, RelationStatus.ACCEPTED.getCode()));
 
         if (relations.isEmpty()) {
             return Collections.emptyList();

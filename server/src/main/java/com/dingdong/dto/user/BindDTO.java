@@ -21,4 +21,7 @@ public class BindDTO implements Serializable {
     /** 被监督者ID */
     @NotNull(message = "被监督者ID不能为空")
     private Long supervisedId;
+
+    /** 关系名称（如：情侣、挚友、家人等） */
+    private String relationName;
 }

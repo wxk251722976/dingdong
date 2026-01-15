@@ -14,8 +14,11 @@ public enum RelationStatus {
     /** 待确认 - 邀请已发送，等待对方确认 */
     PENDING(0, "待确认"),
 
-    /** 已确认 - 双方已建立关系 */
-    CONFIRMED(1, "已确认");
+    /** 已接受 - 双方已建立关系 */
+    ACCEPTED(1, "已接受"),
+
+    /** 已拒绝 - 对方拒绝了绑定邀请 */
+    REJECTED(2, "已拒绝");
 
     private final Integer code;
     private final String desc;

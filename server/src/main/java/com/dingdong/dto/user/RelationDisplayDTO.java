@@ -20,7 +20,7 @@ public class RelationDisplayDTO {
     /** 关系名称 */
     private String relationName;
 
-    /** 状态: 0-待确认, 1-已确认 */
+    /** 状态: 0-待确认, 1-已接受, 2-已拒绝 */
     private Integer status;
 
     /** 对方用户ID（根据查询角度不同，可能是监督者或被监督者） */

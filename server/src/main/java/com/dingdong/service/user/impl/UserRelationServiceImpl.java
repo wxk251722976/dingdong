@@ -32,7 +32,7 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
         // 查询该监督者绑定的所有关系
         List<UserRelation> relations = this.list(new LambdaQueryWrapper<UserRelation>()
                 .eq(UserRelation::getSupervisorId, supervisorId)
-                .eq(UserRelation::getStatus, RelationStatus.CONFIRMED.getCode()));
+                .eq(UserRelation::getStatus, RelationStatus.ACCEPTED.getCode()));
 
         if (relations.isEmpty()) {
             return Collections.emptyList();
@@ -57,11 +57,12 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
             throw new RuntimeException("关系已存在");
         }
 
-        // 创建新的绑定关系，默认为已确认状态（直接绑定场景）
+        // 创建新的绑定关系，默认为已接受状态（直接绑定场景）
         UserRelation relation = new UserRelation();
         relation.setSupervisorId(bindDTO.getSupervisorId());
         relation.setSupervisedId(bindDTO.getSupervisedId());
-        relation.setStatus(RelationStatus.CONFIRMED.getCode());
+        relation.setRelationName(bindDTO.getRelationName());
+        relation.setStatus(RelationStatus.ACCEPTED.getCode());
         return this.save(relation);
     }
 
@@ -90,8 +91,21 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
             throw new RuntimeException("关系记录不存在");
         }
 
-        // 更新状态为已确认
-        relation.setStatus(RelationStatus.CONFIRMED.getCode());
+        // 更新状态为已接受
+        relation.setStatus(RelationStatus.ACCEPTED.getCode());
+        return this.updateById(relation);
+    }
+
+    @Override
+    public boolean rejectInvite(Long relationId) {
+        // 查询关系记录
+        UserRelation relation = this.getById(relationId);
+        if (relation == null) {
+            throw new RuntimeException("关系记录不存在");
+        }
+
+        // 更新状态为已拒绝
+        relation.setStatus(RelationStatus.REJECTED.getCode());
         return this.updateById(relation);
     }
 }

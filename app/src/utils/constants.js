@@ -18,7 +18,8 @@ export const TaskStatus = {
  */
 export const RelationStatus = {
     PENDING: { code: 0, desc: '待确认' },
-    CONFIRMED: { code: 1, desc: '已确认' }
+    ACCEPTED: { code: 1, desc: '已接受' },
+    REJECTED: { code: 2, desc: '已拒绝' }
 };
 
 /**
