@@ -62,6 +62,7 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
         relation.setSupervisorId(bindDTO.getSupervisorId());
         relation.setSupervisedId(bindDTO.getSupervisedId());
         relation.setRelationName(bindDTO.getRelationName());
+        relation.setRelationType(bindDTO.getRelationType() != null ? bindDTO.getRelationType() : 0);
         relation.setStatus(RelationStatus.ACCEPTED.getCode());
         return this.save(relation);
     }
@@ -107,5 +108,65 @@ public class UserRelationServiceImpl extends ServiceImpl<UserRelationMapper, Use
         // 更新状态为已拒绝
         relation.setStatus(RelationStatus.REJECTED.getCode());
         return this.updateById(relation);
+    }
+
+    @Override
+    public List<com.dingdong.dto.user.RelationDisplayDTO> getRelationsWithUserInfo(Long userId) {
+        // 1. 获取所有关系
+        List<UserRelation> relations = getMyRelations(userId);
+        if (relations.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 2. 收集所有需要查询的用户ID
+        java.util.Set<Long> userIds = new java.util.HashSet<>();
+        for (UserRelation r : relations) {
+            // 添加在此关系中不是当前用户的另一方ID
+            if (r.getSupervisorId() != null && !r.getSupervisorId().equals(userId)) {
+                userIds.add(r.getSupervisorId());
+            }
+            if (r.getSupervisedId() != null && !r.getSupervisedId().equals(userId)) {
+                userIds.add(r.getSupervisedId());
+            }
+        }
+
+        // 3. 批量查询用户信息
+        java.util.Map<Long, SysUser> userMap = userIds.isEmpty() ? new java.util.HashMap<>()
+                : sysUserService.listByIds(userIds).stream()
+                        .collect(Collectors.toMap(SysUser::getId, java.util.function.Function.identity()));
+
+        // 4. 组装展示对象DTO
+        return relations.stream().map(r -> {
+            com.dingdong.dto.user.RelationDisplayDTO dto = new com.dingdong.dto.user.RelationDisplayDTO();
+            // 复制基本属性
+            dto.setId(r.getId());
+            dto.setSupervisedId(r.getSupervisedId());
+            dto.setSupervisorId(r.getSupervisorId());
+            dto.setRelationName(r.getRelationName());
+            dto.setStatus(r.getStatus());
+
+            // 判断角色并填充对方信息
+            Long otherUserId;
+            // 如果我是监督者
+            if (userId.equals(r.getSupervisorId())) {
+                dto.setRole("SUPERVISOR");
+                otherUserId = r.getSupervisedId();
+            } else {
+                // 我是被监督者
+                dto.setRole("SUPERVISED");
+                otherUserId = r.getSupervisorId();
+            }
+
+            dto.setOtherUserId(otherUserId);
+            SysUser otherUser = userMap.get(otherUserId);
+            if (otherUser != null) {
+                dto.setOtherNickname(otherUser.getNickname());
+                dto.setOtherAvatar(otherUser.getAvatar());
+            } else {
+                dto.setOtherNickname("未知用户");
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

@@ -1,140 +1,181 @@
 package com.dingdong.service.wechat;
 
-import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
+import cn.binarywang.wx.miniapp.api.WxMaService;
+import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
+import cn.binarywang.wx.miniapp.bean.WxMaSubscribeMessage;
+import com.dingdong.config.WxMaConfig;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 /**
  * 微信API服务
- * 提供微信小程序相关API调用，包括access_token管理和动态消息
+ * 使用 WxJava SDK 实现微信小程序相关API调用
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class WechatApiService {
 
-    @Value("${wechat.appid}")
-    private String appId;
-
-    @Value("${wechat.secret}")
-    private String secret;
-
-    // access_token缓存
-    private String cachedAccessToken;
-    private long tokenExpireTime = 0;
-
-    // 动态消息活动ID缓存 (relationId -> activityId)
-    private final Map<Long, String> activityIdCache = new ConcurrentHashMap<>();
+    private final WxMaService wxMaService;
+    private final WxMaConfig wxMaConfig;
 
     /**
-     * 获取access_token（带缓存）
+     * 通过 code 获取用户 session 信息（包含 openid）
+     * 
+     * @param code 微信登录 code
+     * @return session 信息
      */
-    public String getAccessToken() {
-        // 检查缓存是否有效（提前5分钟刷新）
-        if (cachedAccessToken != null && System.currentTimeMillis() < tokenExpireTime - 300000) {
-            return cachedAccessToken;
+    public WxMaJscode2SessionResult getSessionInfo(String code) throws WxErrorException {
+        return wxMaService.getUserService().getSessionInfo(code);
+    }
+
+    /**
+     * 获取用户 openid
+     * 
+     * @param code 微信登录 code
+     * @return openid
+     */
+    public String getOpenid(String code) throws WxErrorException {
+        WxMaJscode2SessionResult session = getSessionInfo(code);
+        return session.getOpenid();
+    }
+
+    /**
+     * 发送订阅消息
+     * 
+     * @param openid     用户 openid
+     * @param templateId 模板ID
+     * @param page       跳转页面
+     * @param data       消息数据
+     */
+    public void sendSubscribeMessage(String openid, String templateId, String page,
+            List<WxMaSubscribeMessage.MsgData> data) throws WxErrorException {
+        WxMaSubscribeMessage message = WxMaSubscribeMessage.builder()
+                .toUser(openid)
+                .templateId(templateId)
+                .page(page)
+                .data(data)
+                .build();
+
+        wxMaService.getMsgService().sendSubscribeMsg(message);
+        log.info("订阅消息发送成功: openid={}, templateId={}", openid, templateId);
+    }
+
+    /**
+     * 发送叮咚提醒消息
+     * 
+     * @param openid     用户 openid
+     * @param taskTitle  任务标题
+     * @param remindTime 提醒时间
+     */
+    public void sendRemindMessage(String openid, String taskTitle, String remindTime) {
+        try {
+            String templateId = wxMaConfig.getSubscribeMessage().getRemindCheckin();
+            List<WxMaSubscribeMessage.MsgData> data = List.of(
+                    new WxMaSubscribeMessage.MsgData("thing1", taskTitle),
+                    new WxMaSubscribeMessage.MsgData("time2", remindTime));
+            sendSubscribeMessage(openid, templateId, "/pages/home/index", data);
+        } catch (WxErrorException e) {
+            log.error("发送叮咚提醒消息失败: openid={}, error={}", openid, e.getMessage());
         }
+    }
 
-        String url = String.format(
-                "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s",
-                appId, secret);
-
-        String result = HttpUtil.get(url);
-        log.info("获取access_token响应: {}", result);
-
-        JSONObject json = JSONUtil.parseObj(result);
-        if (json.containsKey("access_token")) {
-            cachedAccessToken = json.getStr("access_token");
-            int expiresIn = json.getInt("expires_in", 7200);
-            tokenExpireTime = System.currentTimeMillis() + expiresIn * 1000L;
-            return cachedAccessToken;
+    /**
+     * 发送打卡完成通知
+     * 
+     * @param openid    用户 openid
+     * @param taskTitle 任务标题
+     * @param checkTime 打卡时间
+     */
+    public void sendCheckinCompleteMessage(String openid, String taskTitle, String checkTime) {
+        try {
+            String templateId = wxMaConfig.getSubscribeMessage().getCheckinComplete();
+            List<WxMaSubscribeMessage.MsgData> data = List.of(
+                    new WxMaSubscribeMessage.MsgData("thing1", taskTitle),
+                    new WxMaSubscribeMessage.MsgData("time2", checkTime));
+            sendSubscribeMessage(openid, templateId, "/pages/home/index", data);
+        } catch (WxErrorException e) {
+            log.error("发送打卡完成通知失败: openid={}, error={}", openid, e.getMessage());
         }
+    }
 
-        log.error("获取access_token失败: {}", result);
-        throw new RuntimeException("获取access_token失败: " + json.getStr("errmsg"));
+    /**
+     * 发送漏打卡通知
+     * 
+     * @param openid    用户 openid
+     * @param taskTitle 任务标题
+     * @param missDate  漏打卡日期
+     */
+    public void sendMissedCheckinMessage(String openid, String taskTitle, String missDate) {
+        try {
+            String templateId = wxMaConfig.getSubscribeMessage().getMissedCheckin();
+            List<WxMaSubscribeMessage.MsgData> data = List.of(
+                    new WxMaSubscribeMessage.MsgData("thing1", taskTitle),
+                    new WxMaSubscribeMessage.MsgData("date2", missDate));
+            sendSubscribeMessage(openid, templateId, "/pages/home/index", data);
+        } catch (WxErrorException e) {
+            log.error("发送漏打卡通知失败: openid={}, error={}", openid, e.getMessage());
+        }
     }
 
     /**
      * 创建动态消息活动ID
      * 用于转发动态消息时声明消息类型
      * 
-     * @param unionId 可选，关联的unionId
      * @return activityId
      */
-    public String createActivityId(String unionId) {
-        String accessToken = getAccessToken();
-        String url = String.format(
-                "https://api.weixin.qq.com/cgi-bin/message/wxopen/activityid/create?access_token=%s",
-                accessToken);
-
-        Map<String, Object> params = new HashMap<>();
-        if (unionId != null && !unionId.isEmpty()) {
-            params.put("unionid", unionId);
-        }
-
-        String result = HttpUtil.post(url, JSONUtil.toJsonStr(params));
+    public String createActivityId() throws WxErrorException {
+        // WxJava 暂不直接支持创建动态消息活动ID，使用底层HTTP调用
+        String result = wxMaService.post(
+                "https://api.weixin.qq.com/cgi-bin/message/wxopen/activityid/create",
+                "{}");
         log.info("创建activityId响应: {}", result);
 
-        JSONObject json = JSONUtil.parseObj(result);
+        // 解析返回的 activity_id
+        cn.hutool.json.JSONObject json = cn.hutool.json.JSONUtil.parseObj(result);
         if (json.getInt("errcode", 0) == 0) {
             return json.getStr("activity_id");
         }
-
-        log.error("创建activityId失败: {}", result);
-        throw new RuntimeException("创建activityId失败: " + json.getStr("errmsg"));
+        throw new WxErrorException("创建activityId失败: " + json.getStr("errmsg"));
     }
 
     /**
      * 更新动态消息状态
      * 
-     * @param activityId   活动ID
-     * @param targetState  目标状态: 0-未开始, 1-已开始(待绑定), 2-已结束(已绑定/已拒绝)
-     * @param templateInfo 模板信息
+     * @param activityId  活动ID
+     * @param targetState 目标状态: 0-未开始, 1-进行中, 2-已结束
+     * @param memberCount 成员数量
+     * @param roomLimit   房间限制
      */
-    public void setUpdatableMsg(String activityId, int targetState, Map<String, Object> templateInfo) {
-        String accessToken = getAccessToken();
-        String url = String.format(
-                "https://api.weixin.qq.com/cgi-bin/message/wxopen/updatablemsg/send?access_token=%s",
-                accessToken);
+    public void setUpdatableMsg(String activityId, int targetState, String memberCount, String roomLimit)
+            throws WxErrorException {
+        String requestBody = cn.hutool.json.JSONUtil.toJsonStr(new java.util.HashMap<String, Object>() {
+            {
+                put("activity_id", activityId);
+                put("target_state", targetState);
+                put("template_info", new java.util.HashMap<String, Object>() {
+                    {
+                        put("parameter_list", new Object[] {
+                                java.util.Map.of("name", "member_count", "value", memberCount),
+                                java.util.Map.of("name", "room_limit", "value", roomLimit)
+                        });
+                    }
+                });
+            }
+        });
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("activity_id", activityId);
-        params.put("target_state", targetState);
-        params.put("template_info", templateInfo);
-
-        String result = HttpUtil.post(url, JSONUtil.toJsonStr(params));
+        String result = wxMaService.post(
+                "https://api.weixin.qq.com/cgi-bin/message/wxopen/updatablemsg/send",
+                requestBody);
         log.info("更新动态消息响应: {}", result);
 
-        JSONObject json = JSONUtil.parseObj(result);
+        cn.hutool.json.JSONObject json = cn.hutool.json.JSONUtil.parseObj(result);
         if (json.getInt("errcode", 0) != 0) {
             log.error("更新动态消息失败: {}", result);
         }
-    }
-
-    /**
-     * 缓存关系ID与活动ID的映射
-     */
-    public void cacheActivityId(Long relationId, String activityId) {
-        activityIdCache.put(relationId, activityId);
-    }
-
-    /**
-     * 获取缓存的活动ID
-     */
-    public String getCachedActivityId(Long relationId) {
-        return activityIdCache.get(relationId);
-    }
-
-    /**
-     * 移除缓存的活动ID
-     */
-    public void removeCachedActivityId(Long relationId) {
-        activityIdCache.remove(relationId);
     }
 }

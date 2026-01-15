@@ -61,4 +61,12 @@ public interface IUserRelationService extends IService<UserRelation> {
      * @return 是否成功
      */
     boolean rejectInvite(Long relationId);
+
+    /**
+     * 获取用户的关系列表（带用户信息）
+     * 
+     * @param userId 用户ID
+     * @return 关系展示列表
+     */
+    List<com.dingdong.dto.user.RelationDisplayDTO> getRelationsWithUserInfo(Long userId);
 }

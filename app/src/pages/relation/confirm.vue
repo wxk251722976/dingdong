@@ -57,6 +57,7 @@ const errorMsg = ref('');
 // 邀请参数
 const inviteUserId = ref(null);
 const relationName = ref('好友');
+const relationType = ref(0);
 const activityId = ref(null);
 
 onMounted(async () => {
@@ -72,6 +73,7 @@ onMounted(async () => {
   if (options.inviteUserId) {
     inviteUserId.value = options.inviteUserId;
     relationName.value = decodeURIComponent(options.relationName || '好友');
+    relationType.value = parseInt(options.relationType) || 0;
     activityId.value = options.activityId || null;
     
     // 获取邀请者信息
@@ -112,7 +114,7 @@ const loadInviteInfo = async () => {
 const goLogin = () => {
   // 跳转到登录页，登录后返回此页面
   const currentPage = getCurrentPages()[getCurrentPages().length - 1];
-  let fullPath = `/${currentPage.route}?inviteUserId=${inviteUserId.value}&relationName=${encodeURIComponent(relationName.value)}`;
+  let fullPath = `/${currentPage.route}?inviteUserId=${inviteUserId.value}&relationName=${encodeURIComponent(relationName.value)}&relationType=${relationType.value}`;
   if (activityId.value) {
     fullPath += `&activityId=${activityId.value}`;
   }
@@ -134,7 +136,8 @@ const handleAccept = async () => {
       data: {
         supervisedId: user.id,
         supervisorId: inviteUserId.value,
-        relationName: relationName.value
+        relationName: relationName.value,
+        relationType: relationType.value
       }
     });
     

@@ -1,8 +1,6 @@
 package com.dingdong.service.user.impl;
 
-import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
+import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dingdong.common.constant.UserConstants;
 import com.dingdong.common.exception.ServiceException;
@@ -10,8 +8,10 @@ import com.dingdong.dto.auth.LoginDTO;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.mapper.user.SysUserMapper;
 import com.dingdong.service.user.ISysUserService;
+import com.dingdong.service.wechat.WechatApiService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import me.chanjar.weixin.common.error.WxErrorException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 
 /**
  * 用户业务逻辑实现类
+ * 使用 WxJava SDK 实现微信登录
  * 
  * @author Antigravity
  */
@@ -26,37 +27,33 @@ import java.time.LocalDateTime;
 @Service
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements ISysUserService {
 
-    @Value("${wechat.appid}")
-    private String appId;
-
-    @Value("${wechat.secret}")
-    private String secret;
-
-    @Value("${wechat.api-url}")
-    private String apiUrl;
-
+    private final WechatApiService wechatApiService;
     private final com.dingdong.service.user.IUserLevelConfigService levelConfigService;
 
     public SysUserServiceImpl(
-            @org.springframework.context.annotation.Lazy com.dingdong.service.user.IUserLevelConfigService levelConfigService) {
+            WechatApiService wechatApiService,
+            @Lazy com.dingdong.service.user.IUserLevelConfigService levelConfigService) {
+        this.wechatApiService = wechatApiService;
         this.levelConfigService = levelConfigService;
     }
 
     @Override
     public SysUser loginOrRegister(LoginDTO loginDTO) {
         String code = loginDTO.getCode();
-        // 1. 调用微信接口获取 OpenID
-        String url = String.format("%s?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
-                apiUrl, appId, secret, code);
-        String result = HttpUtil.get(url);
-        log.info("微信登录返回结果: {}", result);
 
-        JSONObject json = JSONUtil.parseObj(result);
-        String openid = json.getStr("openid");
+        // 1. 使用 WxJava SDK 获取 OpenID
+        String openid;
+        try {
+            WxMaJscode2SessionResult session = wechatApiService.getSessionInfo(code);
+            openid = session.getOpenid();
+            log.info("微信登录成功: openid={}", openid);
+        } catch (WxErrorException e) {
+            log.error("微信登录失败: {}", e.getMessage());
+            throw new ServiceException("微信登录失败: " + e.getMessage());
+        }
 
         if (!StringUtils.hasText(openid)) {
-            log.error("微信登录失败，响应内容: {}", result);
-            throw new ServiceException("微信登录失败");
+            throw new ServiceException("微信登录失败：无法获取用户信息");
         }
 
         // 2. 查询数据库是否存在该用户

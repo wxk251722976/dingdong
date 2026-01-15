@@ -24,4 +24,7 @@ public class BindDTO implements Serializable {
 
     /** 关系名称（如：情侣、挚友、家人等） */
     private String relationName;
+
+    /** 关系类型: 0-预设, 1-自定义 */
+    private Integer relationType;
 }

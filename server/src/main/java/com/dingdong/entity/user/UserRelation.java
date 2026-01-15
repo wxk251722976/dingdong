@@ -27,6 +27,9 @@ public class UserRelation extends BaseEntity {
     /** 关系名称 (e.g. 情侣, 挚友) */
     private String relationName;
 
+    /** 关系类型: 0-预设, 1-自定义 */
+    private Integer relationType;
+
     /** 状态: 0-待确认, 1-已接受, 2-已拒绝 */
     private Integer status;
 }

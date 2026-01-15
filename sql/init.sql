@@ -60,6 +60,7 @@ CREATE TABLE `user_relation`  (
   `supervised_id` bigint(0) DEFAULT NULL COMMENT '被监督者ID',
   `supervisor_id` bigint(0) DEFAULT NULL COMMENT '监督者ID',
   `relation_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '关系名称',
+  `relation_type` tinyint(4) DEFAULT 0 COMMENT '关系类型: 0-自定义, 1-情侣, 2-挚友, 3-家人',
   `status` tinyint(4) DEFAULT 0 COMMENT '状态: 0-待确认, 1-已接受, 2-已拒绝',
   `create_time` datetime(0) NULL DEFAULT NULL COMMENT '创建时间',
   `create_by` bigint(0) NULL DEFAULT NULL COMMENT '创建人ID',

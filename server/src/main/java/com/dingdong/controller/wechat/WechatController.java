@@ -3,6 +3,7 @@ package com.dingdong.controller.wechat;
 import com.dingdong.common.Result;
 import com.dingdong.service.wechat.WechatApiService;
 import lombok.RequiredArgsConstructor;
+import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -10,7 +11,7 @@ import java.util.Map;
 
 /**
  * 微信API控制器
- * 提供动态消息相关接口
+ * 使用 WxJava SDK 提供动态消息相关接口
  */
 @RestController
 @RequestMapping("/wechat")
@@ -28,36 +29,11 @@ public class WechatController {
     @PostMapping("/createActivityId")
     public Result<Map<String, String>> createActivityId() {
         try {
-            String activityId = wechatApiService.createActivityId(null);
+            String activityId = wechatApiService.createActivityId();
             Map<String, String> result = new HashMap<>();
             result.put("activityId", activityId);
             return Result.success(result);
-        } catch (Exception e) {
-            return Result.error(500, "创建活动ID失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 创建并关联动态消息活动ID到关系记录
-     * 
-     * @param relationId 关系记录ID（可选，如果已有关系记录）
-     * @return 包含activityId的响应
-     */
-    @PostMapping("/createActivityIdForRelation")
-    public Result<Map<String, String>> createActivityIdForRelation(
-            @RequestParam(required = false) Long relationId) {
-        try {
-            String activityId = wechatApiService.createActivityId(null);
-
-            // 如果有关系ID，缓存映射关系
-            if (relationId != null) {
-                wechatApiService.cacheActivityId(relationId, activityId);
-            }
-
-            Map<String, String> result = new HashMap<>();
-            result.put("activityId", activityId);
-            return Result.success(result);
-        } catch (Exception e) {
+        } catch (WxErrorException e) {
             return Result.error(500, "创建活动ID失败: " + e.getMessage());
         }
     }
@@ -82,28 +58,21 @@ public class WechatController {
             // target_state: 0-未开始, 1-进行中, 2-已结束
             int targetState = 2; // 已结束
 
-            Map<String, Object> templateInfo = new HashMap<>();
-            Map<String, Object> parameterList = new HashMap<>();
+            String memberCount;
+            String roomLimit = "2";
 
             if ("accepted".equals(status)) {
-                // 已接受 - 使用模板1的状态
-                parameterList.put("member_count", "2");
-                parameterList.put("room_limit", "2");
+                // 已接受
+                memberCount = "2";
             } else {
                 // 已拒绝
-                parameterList.put("member_count", "1");
-                parameterList.put("room_limit", "2");
+                memberCount = "1";
             }
 
-            templateInfo.put("parameter_list", new Object[] {
-                    Map.of("name", "member_count", "value", parameterList.get("member_count")),
-                    Map.of("name", "room_limit", "value", parameterList.get("room_limit"))
-            });
-
-            wechatApiService.setUpdatableMsg(activityId, targetState, templateInfo);
+            wechatApiService.setUpdatableMsg(activityId, targetState, memberCount, roomLimit);
 
             return Result.success(true);
-        } catch (Exception e) {
+        } catch (WxErrorException e) {
             return Result.error(500, "更新动态消息失败: " + e.getMessage());
         }
     }

@@ -38,17 +38,36 @@
 <script>
 import request from '@/utils/request';
 import { TaskStatus } from '@/utils/constants';
+import { requestSupervisorSubscribe } from '@/utils/subscribe';
 
 export default {
   data() {
     return {
-      supervisedUsers: []
+      supervisedUsers: [],
+      hasRequestedSubscribe: false  // 标记是否已请求过订阅
     };
   },
   onShow() {
     this.fetchSupervisedUsers();
+    // 首次进入页面时请求订阅授权
+    if (!this.hasRequestedSubscribe) {
+      this.requestSubscribe();
+    }
   },
   methods: {
+    /**
+     * 请求订阅消息授权
+     * 监督者需要接收：打卡完成通知、漏打卡通知
+     */
+    async requestSubscribe() {
+      try {
+        const result = await requestSupervisorSubscribe();
+        console.log('监督者订阅授权结果:', result);
+        this.hasRequestedSubscribe = true;
+      } catch (e) {
+        console.error('请求订阅授权失败:', e);
+      }
+    },
     async fetchSupervisedUsers() {
       try {
         const user = uni.getStorageSync('user');

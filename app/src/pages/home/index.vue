@@ -62,6 +62,7 @@
 import request from '@/utils/request';
 import { TaskStatus } from '@/utils/constants';
 import { formatTimestamp } from '@/utils/dateUtils';
+import { requestSupervisedSubscribe } from '@/utils/subscribe';
 
 export default {
   data() {
@@ -69,6 +70,7 @@ export default {
       time: '00:00',
       timer: null,
       dailyTasks: [],
+      hasRequestedSubscribe: false  // 标记是否已请求过订阅
     };
   },
   computed: {
@@ -82,6 +84,10 @@ export default {
     this.updateTime();
     this.timer = setInterval(this.updateTime, 1000);
     this.fetchDailyTasks();
+    // 首次进入页面时请求订阅授权
+    if (!this.hasRequestedSubscribe) {
+      this.requestSubscribe();
+    }
   },
   onHide() {
     if (this.timer) {
@@ -89,6 +95,19 @@ export default {
     }
   },
   methods: {
+    /**
+     * 请求订阅消息授权
+     * 被监督者需要接收：叮咚提醒通知
+     */
+    async requestSubscribe() {
+      try {
+        const result = await requestSupervisedSubscribe();
+        console.log('被监督者订阅授权结果:', result);
+        this.hasRequestedSubscribe = true;
+      } catch (e) {
+        console.error('请求订阅授权失败:', e);
+      }
+    },
     updateTime() {
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
