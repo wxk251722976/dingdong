@@ -141,7 +141,7 @@ export default {
       }).then(() => {
         uni.showToast({ title: '打卡成功', icon: 'success' });
         this.task.status = TaskStatus.NORMAL.code;
-        this.task.checkTime = new Date().toISOString();
+        this.task.checkTime = Date.now();
       }).finally(() => {
         uni.hideLoading();
       });

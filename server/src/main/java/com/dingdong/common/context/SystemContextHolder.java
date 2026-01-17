@@ -12,6 +12,7 @@ public class SystemContextHolder {
     private static final ThreadLocal<Map<String, Object>> THREAD_LOCAL = ThreadLocal.withInitial(HashMap::new);
 
     private static final String KEY_USER_ID = "userId";
+    private static final String KEY_USERNAME = "username";
 
     /**
      * 设置当前用户ID
@@ -25,6 +26,20 @@ public class SystemContextHolder {
      */
     public static Long getUserId() {
         return get(KEY_USER_ID, Long.class);
+    }
+
+    /**
+     * 设置当前用户名称
+     */
+    public static void setUsername(String username) {
+        set(KEY_USERNAME, username);
+    }
+
+    /**
+     * 获取当前用户名称
+     */
+    public static String getUsername() {
+        return get(KEY_USERNAME, String.class);
     }
 
     /**

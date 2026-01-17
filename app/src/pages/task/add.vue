@@ -72,6 +72,7 @@
 <script>
 import request from '@/utils/request';
 import { RepeatType } from '@/utils/constants';
+import { formatTimestamp } from '@/utils/dateUtils';
 
 export default {
   data() {
@@ -127,8 +128,9 @@ export default {
           this.targetUserName = task.userName || '用户';
           
           if (task.remindTime) {
-            const [datePart, timePart] = task.remindTime.split('T');
-            const timeStr = timePart ? timePart.substring(0, 5) : '12:00';
+            // 使用公共方法处理时间戳/日期字符串
+            const datePart = formatTimestamp(task.remindTime, 'date');
+            const timeStr = formatTimestamp(task.remindTime, 'time');
             
             if (this.repeatType === RepeatType.ONCE.code) {
               this.onceDate = datePart;

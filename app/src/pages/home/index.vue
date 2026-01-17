@@ -80,14 +80,16 @@ export default {
       return pending || null;
     }
   },
-  onShow() {
-    this.updateTime();
-    this.timer = setInterval(this.updateTime, 1000);
-    this.fetchDailyTasks();
+  onLoad() {
     // 首次进入页面时请求订阅授权
     if (!this.hasRequestedSubscribe) {
       this.requestSubscribe();
     }
+  },
+  onShow() {
+    this.updateTime();
+    this.timer = setInterval(this.updateTime, 1000);
+    this.fetchDailyTasks();
   },
   onHide() {
     if (this.timer) {
@@ -137,8 +139,41 @@ export default {
     handleCheckIn() {
       if (!this.currentTask) return;
       
-      uni.showLoading({ title: '叮咚中...' });
+      const remindTime = this.currentTask.remindTime;
+      if (!remindTime) {
+          // If no remind time, assume all day allow or standard logic?
+          // Assuming it must have remindTime if it is a timed task.
+          this.doCheckIn();
+          return;
+      }
       
+      const now = Date.now();
+      const remind = typeof remindTime === 'string' ? new Date(remindTime).getTime() : remindTime;
+      const diff = now - remind;
+      const minutes = diff / (1000 * 60);
+      
+      // 1. Too early: More than 30 mins before
+      if (minutes < -30) {
+          uni.showToast({ title: '还未到打卡时间哦', icon: 'none' });
+          return;
+      }
+      
+      // 2. Missed: More than 30 mins after
+      if (minutes > 30) {
+          uni.showToast({ title: '任务已过期，无法打卡', icon: 'none' });
+          // Optionally refresh list to see if status updates
+          this.fetchDailyTasks();
+          return;
+      }
+      
+      // 3. Normal or Late - Proceed
+      const isLate = minutes >= 0;
+      const typeText = isLate ? '补卡' : '打卡';
+      
+      uni.showLoading({ title: `${typeText}中...` });
+      this.doCheckIn();
+    },
+    doCheckIn() {
       request({
         url: '/checkIn/do',
         method: 'POST',

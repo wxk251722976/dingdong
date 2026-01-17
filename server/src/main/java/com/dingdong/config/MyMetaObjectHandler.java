@@ -28,13 +28,12 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         // 从登录上下文获取当前用户ID
         Long currentUserId = Objects.requireNonNullElse(SystemContextHolder.getUserId(), 0L);
 
-        this.strictInsertFill(metaObject, "createBy", Long.class, currentUserId);
-        this.strictInsertFill(metaObject, "createName", String.class, "");
-        this.strictInsertFill(metaObject, "updateBy", Long.class, currentUserId);
-        this.strictInsertFill(metaObject, "updateName", String.class, "");
+        String currentUsername = Objects.requireNonNullElse(SystemContextHolder.getUsername(), "");
 
-        // 默认未删除
-        this.strictInsertFill(metaObject, "deleted", Integer.class, 0);
+        this.strictInsertFill(metaObject, "createBy", Long.class, currentUserId);
+        this.strictInsertFill(metaObject, "createName", String.class, currentUsername);
+        this.strictInsertFill(metaObject, "updateBy", Long.class, currentUserId);
+        this.strictInsertFill(metaObject, "updateName", String.class, currentUsername);
     }
 
     @Override
@@ -47,7 +46,9 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         // 从登录上下文获取当前用户ID
         Long currentUserId = Objects.requireNonNullElse(SystemContextHolder.getUserId(), 0L);
 
+        String currentUsername = Objects.requireNonNullElse(SystemContextHolder.getUsername(), "");
+
         this.strictUpdateFill(metaObject, "updateBy", Long.class, currentUserId);
-        this.strictUpdateFill(metaObject, "updateName", String.class, "");
+        this.strictUpdateFill(metaObject, "updateName", String.class, currentUsername);
     }
 }

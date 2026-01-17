@@ -1,4 +1,6 @@
-const BASE_URL = 'http://localhost:8080';
+// 使用 ngrok 内网穿透的公网地址
+// 注意：ngrok 免费版每次重启地址会变化
+const BASE_URL = 'https://scrabbly-comfier-queen.ngrok-free.dev';
 
 let isRefreshing = false;
 let requests = [];
@@ -23,6 +25,8 @@ const request = (options) => {
         // 确保 header 存在
         options.header = options.header || {};
         options.header['Content-Type'] = 'application/json';
+        // ngrok 免费版必须要这个 header，否则会返回警告页面导致请求失败
+        options.header['ngrok-skip-browser-warning'] = 'true';
         if (token) {
             options.header['Authorization'] = `Bearer ${token}`;
         }
@@ -44,7 +48,7 @@ const request = (options) => {
                                 url: BASE_URL + '/auth/refresh',
                                 method: 'POST',
                                 data: { refreshToken },
-                                header: { 'Content-Type': 'application/json' },
+                                header: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                                 success: (refreshRes) => {
                                     if (refreshRes.statusCode === 200 && refreshRes.data.code === 200) {
                                         const newToken = refreshRes.data.data.token;

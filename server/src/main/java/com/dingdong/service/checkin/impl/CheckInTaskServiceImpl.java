@@ -167,7 +167,14 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
         DailyTaskStatusDTO dto = new DailyTaskStatusDTO();
         dto.setTaskId(task.getId());
         dto.setTitle(task.getTitle());
-        dto.setRemindTime(task.getRemindTime());
+
+        // 计算当天的提醒时间
+        LocalDateTime remindTime = task.getRemindTime();
+        if (remindTime != null && !RepeatType.ONCE.getCode().equals(task.getRepeatType())) {
+            remindTime = LocalDateTime.of(date, remindTime.toLocalTime());
+        }
+        dto.setRemindTime(remindTime);
+
         dto.setRepeatType(task.getRepeatType());
         dto.setStatus(calculateTaskStatus(task, log, isToday, date));
         dto.setCheckTime(log != null ? log.getCheckTime() : null);

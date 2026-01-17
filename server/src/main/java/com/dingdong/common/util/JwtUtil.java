@@ -28,11 +28,12 @@ public class JwtUtil {
     /**
      * 生成 Access Token
      *
-     * @param userId 用户ID
+     * @param userId   用户ID
+     * @param nickname 用户昵称
      * @return JWT Token
      */
-    public String generateToken(Long userId) {
-        return generateToken(userId, expiration, "access");
+    public String generateToken(Long userId, String nickname) {
+        return generateToken(userId, nickname, expiration, "access");
     }
 
     /**
@@ -42,22 +43,27 @@ public class JwtUtil {
      * @return Refresh Token
      */
     public String generateRefreshToken(Long userId) {
-        return generateToken(userId, refreshExpiration, "refresh");
+        return generateToken(userId, null, refreshExpiration, "refresh");
     }
 
-    private String generateToken(Long userId, Long expireTime, String type) {
+    private String generateToken(Long userId, String nickname, Long expireTime, String type) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expireTime);
 
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("type", type)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(key)
-                .compact();
+                .signWith(key);
+
+        if (nickname != null) {
+            builder.claim("nickname", nickname);
+        }
+
+        return builder.compact();
     }
 
     /**
@@ -69,6 +75,17 @@ public class JwtUtil {
     public Long getUserIdFromToken(String token) {
         Claims claims = parseToken(token);
         return Long.parseLong(claims.getSubject());
+    }
+
+    /**
+     * 从 Token 中获取用户昵称
+     *
+     * @param token JWT Token
+     * @return 用户昵称
+     */
+    public String getNicknameFromToken(String token) {
+        Claims claims = parseToken(token);
+        return claims.get("nickname", String.class);
     }
 
     /**

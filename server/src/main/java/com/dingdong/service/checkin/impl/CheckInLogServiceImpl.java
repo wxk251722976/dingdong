@@ -86,14 +86,19 @@ public class CheckInLogServiceImpl extends ServiceImpl<CheckInLogMapper, CheckIn
     }
 
     /**
-     * 验证打卡时间是否有效（在目标时间后30分钟内）
+     * 验证打卡时间是否有效（在目标时间前后30分钟内）
      */
     private void validateCheckInTime(LocalDateTime now, LocalDateTime targetTime) {
         int limitMinutes = 30;
-        LocalDateTime limitTime = targetTime.plusMinutes(limitMinutes);
+        LocalDateTime startTime = targetTime.minusMinutes(limitMinutes);
+        LocalDateTime endTime = targetTime.plusMinutes(limitMinutes);
 
-        if (now.isAfter(limitTime)) {
-            throw new ServiceException("已超过打卡时限(" + limitMinutes + "分钟)，无法打卡");
+        if (now.isBefore(startTime)) {
+            throw new ServiceException("还未到打卡时间哦");
+        }
+
+        if (now.isAfter(endTime)) {
+            throw new ServiceException("任务已过期，无法打卡");
         }
     }
 

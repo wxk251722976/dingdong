@@ -38,6 +38,7 @@
 
 <script>
 import request from '@/utils/request';
+import { formatTimestamp } from '@/utils/dateUtils';
 
 export default {
   data() {
@@ -57,8 +58,7 @@ export default {
     },
     formatTime(remindTime) {
         if (!remindTime) return '--:--';
-        const time = remindTime.split('T')[1];
-        return time ? time.substring(0, 5) : '--:--';
+        return formatTimestamp(remindTime, 'time');
     },
     bindDateChange(e) {
         this.currentDate = e.detail.value;

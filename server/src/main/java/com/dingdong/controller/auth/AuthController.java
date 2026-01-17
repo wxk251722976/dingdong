@@ -40,7 +40,7 @@ public class AuthController {
     @PostMapping("/login")
     public Result<LoginResultDTO> login(@RequestBody @Valid LoginDTO loginDTO) {
         SysUser user = sysUserService.loginOrRegister(loginDTO);
-        String token = jwtUtil.generateToken(user.getId());
+        String token = jwtUtil.generateToken(user.getId(), user.getNickname());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
         return Result.success(new LoginResultDTO(user, token, refreshToken));
     }
@@ -58,7 +58,11 @@ public class AuthController {
         }
 
         Long userId = jwtUtil.getUserIdFromToken(refreshToken);
-        String newToken = jwtUtil.generateToken(userId);
+        SysUser user = sysUserService.getById(userId);
+        if (user == null) {
+            return Result.error(401, "User not found");
+        }
+        String newToken = jwtUtil.generateToken(userId, user.getNickname());
 
         // 返回新的 Access Token
         // 可以选择是否同时也旋转 Refresh Token，这里暂只更新 Access Token
