@@ -37,7 +37,7 @@
       <div class="faq-item" v-for="(item, index) in faqList" :key="index" @click="toggleFaq(index)">
         <div class="faq-question">
           <text>{{ item.question }}</text>
-          <text class="arrow" :class="{ expanded: item.expanded }">></text>
+          <view class="arrow" :class="{ expanded: item.expanded }"></view>
         </div>
         <div class="faq-answer" v-if="item.expanded">{{ item.answer }}</div>
       </div>
@@ -249,12 +249,16 @@ export default {
 }
 
 .arrow {
-  color: #999;
+  width: 14rpx;
+  height: 14rpx;
+  border-top: 4rpx solid #999;
+  border-right: 4rpx solid #999;
+  transform: rotate(45deg);
   transition: transform 0.3s;
 }
 
 .arrow.expanded {
-  transform: rotate(90deg);
+  transform: rotate(135deg);
 }
 
 .faq-answer {

@@ -9,7 +9,7 @@
           <div class="nickname">{{ userInfo.id ? (userInfo.nickname || '未设置昵称') : '点击登录' }}</div>
           <div class="level-badge" v-if="userInfo.levelName">{{ userInfo.levelName }}</div>
         </div>
-        <div class="role-tag">点击修改资料 > </div>
+        <div class="role-tag">点击修改资料 <view class="arrow-inline"></view></div>
       </div>
     </div>
 
@@ -19,7 +19,7 @@
             <text class="icon">👥</text>
             <text class="menu-text">关系管理</text>
         </div>
-        <text class="arrow">></text>
+        <view class="arrow"></view>
       </div>
       
       <div class="menu-item" @click="navTo('/pages/supervisor/index')">
@@ -27,7 +27,7 @@
             <text class="icon">👀</text>
             <text class="menu-text">任务管理</text>
         </div>
-        <text class="arrow">></text>
+        <view class="arrow"></view>
       </div>
 
       <div class="menu-item">
@@ -35,7 +35,7 @@
             <text class="icon">🔔</text>
             <text class="menu-text">通知设置</text>
         </div>
-        <text class="arrow">></text>
+        <view class="arrow"></view>
       </div>
 
       <div class="menu-item" @click="navTo('/pages/stats/index')">
@@ -43,7 +43,7 @@
             <text class="icon">📊</text>
             <text class="menu-text">数据统计</text>
         </div>
-        <text class="arrow">></text>
+        <view class="arrow"></view>
       </div>
 
       <div class="menu-item" @click="navTo('/pages/feedback/index')">
@@ -51,7 +51,7 @@
             <text class="icon">❓</text>
             <text class="menu-text">帮助与反馈</text>
         </div>
-        <text class="arrow">></text>
+        <view class="arrow"></view>
       </div>
     </div>
 
@@ -83,6 +83,7 @@
 
 <script>
 import request from '@/utils/request';
+import { uploadAvatar } from '@/utils/upload';
 
 export default {
   data() {
@@ -149,11 +150,21 @@ export default {
     closeEditPopup() {
       this.showEditPopup = false;
     },
-    onChooseAvatar(e) {
+    async onChooseAvatar(e) {
       const { avatarUrl } = e.detail;
-      // In real app, upload avatarUrl to server here to get a permanent URL
-      // For now we use the temp path or base64
-      this.editForm.avatar = avatarUrl;
+      if (!avatarUrl) return;
+      
+      try {
+        // 上传头像到服务器获取永久URL
+        const permanentUrl = await uploadAvatar(avatarUrl);
+        this.editForm.avatar = permanentUrl;
+        uni.showToast({ title: '头像已上传', icon: 'success' });
+      } catch (err) {
+        console.error('头像上传失败:', err);
+        uni.showToast({ title: '头像上传失败', icon: 'none' });
+        // 上传失败时仍使用临时路径（可选择不更新）
+        // this.editForm.avatar = avatarUrl;
+      }
     },
     saveProfile() {
        if(!this.editForm.nickname) {
@@ -243,6 +254,17 @@ export default {
   font-size: 24rpx;
   color: #999999;
   margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+}
+
+.arrow-inline {
+  width: 12rpx;
+  height: 12rpx;
+  border-top: 3rpx solid #999;
+  border-right: 3rpx solid #999;
+  transform: rotate(45deg);
+  margin-left: 8rpx;
 }
 
 .menu-list {
@@ -282,8 +304,11 @@ export default {
 }
 
 .arrow {
-  color: #cccccc;
-  font-size: 30rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-top: 4rpx solid #ccc;
+  border-right: 4rpx solid #ccc;
+  transform: rotate(45deg);
 }
 
 /* Popup Styles */

@@ -25,6 +25,10 @@ public class TaskDTO {
     @NotBlank(message = "任务标题不能为空")
     private String title;
 
+    /** 任务详细内容 */
+    @org.hibernate.validator.constraints.Length(max = 50, message = "任务内容不能超过50个字符")
+    private String description;
+
     /** 提醒时间 */
     @NotNull(message = "提醒时间不能为空")
     private LocalDateTime remindTime;

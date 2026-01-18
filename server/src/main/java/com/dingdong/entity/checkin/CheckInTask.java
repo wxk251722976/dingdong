@@ -26,8 +26,11 @@ public class CheckInTask extends BaseEntity {
     /** 目标用户ID (被监督者) */
     private Long userId;
 
-    /** 任务标题/内容 */
+    /** 任务标题 */
     private String title;
+
+    /** 任务详细内容 (限制50字) */
+    private String description;
 
     /** 提醒时间 */
     private LocalDateTime remindTime;

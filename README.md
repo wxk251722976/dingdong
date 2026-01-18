@@ -15,9 +15,11 @@
 - **目标平台**: 微信小程序
 
 ### 后端
-- **框架**: Spring Boot 2.7+
+- **框架**: Spring Boot 3.3+
 - **ORM**: MyBatis-Plus
 - **数据库**: MySQL 8.0
+- **缓存**: Redis 7.x
+- **文件存储**: SeaweedFS
 - **安全**: JWT (JSON Web Token) 双 Token 认证
 - **容器化**: Docker + Docker Compose
 
@@ -97,6 +99,11 @@ dingdong/
 | `/user/info` | GET | 获取当前用户信息 |
 | `/user/updateProfile` | POST | 更新用户资料 |
 
+### 文件上传
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/file/upload/avatar` | POST | 上传头像（返回永久URL） |
+
 ---
 
 ## 功能清单
@@ -132,7 +139,6 @@ dingdong/
 - [ ] 列表分页查询
 - [ ] 微信订阅消息推送
 - [ ] 关系解除
-- [ ] 图片资源 oss 存储
 
 #### 中期计划
 - [ ] 任务提醒（定时推送）

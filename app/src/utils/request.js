@@ -1,6 +1,6 @@
 // 使用 ngrok 内网穿透的公网地址
 // 注意：ngrok 免费版每次重启地址会变化
-const BASE_URL = 'https://scrabbly-comfier-queen.ngrok-free.dev';
+export const BASE_URL = 'https://scrabbly-comfier-queen.ngrok-free.dev';
 
 let isRefreshing = false;
 let requests = [];

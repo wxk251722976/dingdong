@@ -86,19 +86,17 @@ public class SubscribeMessageService {
     public void sendRemindMessage(String toOpenId, String taskTitle, LocalDateTime remindTime, String supervisorName) {
         String templateId = wxMaConfig.getSubscribeMessage().getRemindCheckin();
 
-        // 模板数据格式参考:
-        // thing1 - 任务名称
-        // time2 - 提醒时间
-        // thing3 - 创建者/监督者
-        // thing4 - 备注
+        // Template: 签到提醒 (Task Reminder)
+        // thing1 - Activity Name (Task Title)
+        // time3 - Check-in Time
+        // thing8 - Reminder
         List<WxMaSubscribeMessage.MsgData> data = new ArrayList<>();
         data.add(new WxMaSubscribeMessage.MsgData("thing1", truncateValue(taskTitle)));
-        data.add(new WxMaSubscribeMessage.MsgData("time2",
+        data.add(new WxMaSubscribeMessage.MsgData("time3",
                 remindTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
-        data.add(new WxMaSubscribeMessage.MsgData("thing3", truncateValue(supervisorName)));
-        data.add(new WxMaSubscribeMessage.MsgData("thing4", "记得按时完成叮咚打卡哦~"));
+        data.add(new WxMaSubscribeMessage.MsgData("thing8", "任务将在30分钟后开始，请做好准备"));
 
-        sendSubscribeMessage(toOpenId, templateId, data, "pages/supervised/index");
+        sendSubscribeMessage(toOpenId, templateId, data, "pages/home/index");
     }
 
     /**
@@ -115,17 +113,17 @@ public class SubscribeMessageService {
             LocalDateTime checkTime, boolean isOnTime) {
         String templateId = wxMaConfig.getSubscribeMessage().getCheckinComplete();
 
-        // 模板数据格式参考:
-        // thing1 - 用户名称
-        // thing2 - 任务名称
-        // time3 - 完成时间
-        // thing4 - 状态/备注
+        // Template: 签到提醒 (Check-in Success)
+        // thing1 - Activity Name
+        // thing2 - Check-in Reward (Used for Status/Result)
+        // time3 - Check-in Time
+        // thing8 - Reminder
         List<WxMaSubscribeMessage.MsgData> data = new ArrayList<>();
-        data.add(new WxMaSubscribeMessage.MsgData("thing1", truncateValue(supervisedName)));
-        data.add(new WxMaSubscribeMessage.MsgData("thing2", truncateValue(taskTitle)));
+        data.add(new WxMaSubscribeMessage.MsgData("thing1", truncateValue(taskTitle)));
+        data.add(new WxMaSubscribeMessage.MsgData("thing2", isOnTime ? "打卡成功" : "延迟打卡"));
         data.add(new WxMaSubscribeMessage.MsgData("time3",
                 checkTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
-        data.add(new WxMaSubscribeMessage.MsgData("thing4", isOnTime ? "准时完成 ✓" : "已完成(稍有延迟)"));
+        data.add(new WxMaSubscribeMessage.MsgData("thing8", "用户 " + truncateValue(supervisedName) + " 已完成打卡"));
 
         sendSubscribeMessage(toOpenId, templateId, data, "pages/supervisor/index");
     }
@@ -143,17 +141,17 @@ public class SubscribeMessageService {
             LocalDateTime remindTime) {
         String templateId = wxMaConfig.getSubscribeMessage().getMissedCheckin();
 
-        // 模板数据格式参考:
-        // thing1 - 用户名称
-        // thing2 - 任务名称
-        // time3 - 时间
-        // thing4 - 状态/备注
+        // Template: 签到提醒 (Using same template for Missed Check-in)
+        // thing1 - Activity Name
+        // thing2 - Check-in Reward (Used for Status)
+        // time3 - Check-in Time
+        // thing8 - Reminder
         List<WxMaSubscribeMessage.MsgData> data = new ArrayList<>();
-        data.add(new WxMaSubscribeMessage.MsgData("thing1", truncateValue(supervisedName)));
-        data.add(new WxMaSubscribeMessage.MsgData("thing2", truncateValue(taskTitle)));
+        data.add(new WxMaSubscribeMessage.MsgData("thing1", truncateValue(taskTitle)));
+        data.add(new WxMaSubscribeMessage.MsgData("thing2", "未打卡"));
         data.add(new WxMaSubscribeMessage.MsgData("time3",
                 remindTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
-        data.add(new WxMaSubscribeMessage.MsgData("thing4", "已超时30分钟未打卡 ⚠"));
+        data.add(new WxMaSubscribeMessage.MsgData("thing8", "用户 " + truncateValue(supervisedName) + " 已超时30分钟未打卡"));
 
         sendSubscribeMessage(toOpenId, templateId, data, "pages/supervisor/index");
     }

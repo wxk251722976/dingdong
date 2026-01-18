@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="header-info">
-      <image class="avatar" :src="userInfo.avatar || '/static/logo.png'" mode="aspectFill"></image>
+      <image class="avatar" :src="formatAvatar(userInfo.avatar) || '/static/logo.png'" mode="aspectFill" @error="handleImgError"></image>
       <div class="user-name">{{ userInfo.nickname || '用户' }}</div>
     </div>
     
@@ -27,7 +27,7 @@
           <text v-else-if="item.status === 3" class="status-badge red">已错过</text>
           <text v-else class="status-badge gray">待完成</text>
         </div>
-        <text class="arrow">></text>
+        <view class="arrow"></view>
       </div>
       
       <div v-if="tasks.length === 0" class="empty-hint">
@@ -40,7 +40,7 @@
 </template>
 
 <script>
-import request from '@/utils/request';
+import request, { BASE_URL } from '@/utils/request';
 import { RepeatType } from '@/utils/constants';
 import { formatTimestamp } from '@/utils/dateUtils';
 
@@ -103,6 +103,19 @@ export default {
       uni.navigateTo({
         url: `/pages/task/add?preSelectUserId=${this.userId}`
       });
+    },
+    handleImgError() {
+      this.userInfo.avatar = '';
+    },
+    formatAvatar(url) {
+        if (!url) return '';
+        if (url.match(/^(http|wxfile|data|blob):/)) {
+            return url;
+        }
+        if (url.startsWith('/')) {
+            return BASE_URL + url;
+        }
+        return BASE_URL + '/' + url;
     }
   }
 }
@@ -200,8 +213,12 @@ export default {
 .gray { color: #999; background-color: #f5f5f5; }
 
 .arrow {
-  color: #ccc;
-  font-size: 28rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-top: 4rpx solid #ccc;
+  border-right: 4rpx solid #ccc;
+  transform: rotate(45deg);
+  margin-left: 10rpx;
 }
 
 .empty-hint {

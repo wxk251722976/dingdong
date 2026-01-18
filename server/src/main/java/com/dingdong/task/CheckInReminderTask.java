@@ -1,6 +1,7 @@
 package com.dingdong.task;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.dingdong.common.constant.NotifyType;
 import com.dingdong.common.constant.RepeatType;
 import com.dingdong.common.constant.TaskEnabled;
 import com.dingdong.entity.checkin.CheckInLog;
@@ -8,6 +9,7 @@ import com.dingdong.entity.checkin.CheckInTask;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.service.checkin.ICheckInLogService;
 import com.dingdong.service.checkin.ICheckInTaskService;
+import com.dingdong.service.notification.INotificationLogService;
 import com.dingdong.service.user.ISysUserService;
 import com.dingdong.service.wechat.SubscribeMessageService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 /**
  * 叮咚提醒定时任务
  * 负责在指定时间发送订阅消息通知
+ * 
+ * 使用 Redis + 数据库双保险机制防止重复推送
  */
 @Slf4j
 @Component
@@ -33,13 +37,7 @@ public class CheckInReminderTask {
     private final ICheckInLogService checkInLogService;
     private final ISysUserService sysUserService;
     private final SubscribeMessageService subscribeMessageService;
-
-    // 已发送提醒的任务缓存（避免重复发送）
-    // key: taskId-日期, value: 发送时间
-    private final Map<String, LocalDateTime> sentRemindCache = new HashMap<>();
-
-    // 已发送漏打卡通知的任务缓存
-    private final Map<String, LocalDateTime> sentMissedCache = new HashMap<>();
+    private final INotificationLogService notificationLogService;
 
     /**
      * 每分钟执行一次，检查是否有需要发送的提醒
@@ -54,9 +52,6 @@ public class CheckInReminderTask {
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
         int dayOfWeek = today.getDayOfWeek().getValue();
-
-        // 清理过期缓存（只保留今天的记录）
-        cleanExpiredCache(today);
 
         // 1. 获取今天所有启用的任务
         List<CheckInTask> allTasks = checkInTaskService.list(
@@ -119,20 +114,18 @@ public class CheckInReminderTask {
             targetTime = LocalDateTime.of(today, task.getRemindTime().toLocalTime());
         }
 
-        String cacheKey = task.getId() + "-" + today;
         boolean isCompleted = completedTaskIds.contains(task.getId());
 
-        // 情况1: 到达叮咚时间 - 通知被叮咚者
-        if (isTimeToRemind(now, targetTime) && !sentRemindCache.containsKey(cacheKey)) {
-            sendRemindNotification(task, targetTime, userMap);
-            sentRemindCache.put(cacheKey, now);
+        // 情况1: 到达叮咚时间 (提前30分钟任务提醒) - 通知被叮咚者
+        LocalDateTime remindTriggerTime = targetTime.minusMinutes(30);
+        if (isTimeToRemind(now, remindTriggerTime)) {
+            sendRemindNotificationWithCheck(task, today, targetTime, userMap);
         }
 
         // 情况2: 超过30分钟未打卡 - 通知监督者（漏打卡）
         LocalDateTime missedTime = targetTime.plusMinutes(30);
-        if (!isCompleted && now.isAfter(missedTime) && !sentMissedCache.containsKey(cacheKey)) {
-            sendMissedNotification(task, targetTime, userMap);
-            sentMissedCache.put(cacheKey, now);
+        if (!isCompleted && now.isAfter(missedTime)) {
+            sendMissedNotificationWithCheck(task, today, targetTime, userMap);
         }
     }
 
@@ -144,14 +137,23 @@ public class CheckInReminderTask {
     }
 
     /**
-     * 发送叮咚提醒给被叮咚者
+     * 发送叮咚提醒（带防重检查）
      */
-    private void sendRemindNotification(CheckInTask task, LocalDateTime remindTime, Map<Long, SysUser> userMap) {
+    private void sendRemindNotificationWithCheck(CheckInTask task, LocalDate today,
+            LocalDateTime remindTime, Map<Long, SysUser> userMap) {
+        // Redis + 数据库双保险防重
+        if (!notificationLogService.tryAcquireNotifyLock(task.getId(), today, NotifyType.REMIND)) {
+            log.debug("叮咚提醒已发送过: taskId={}, date={}", task.getId(), today);
+            return;
+        }
+
         SysUser targetUser = userMap.get(task.getUserId());
         SysUser creator = task.getCreatorId() != null ? userMap.get(task.getCreatorId()) : null;
 
         if (targetUser == null || targetUser.getOpenid() == null) {
             log.warn("无法发送提醒：目标用户不存在或无openid, taskId={}", task.getId());
+            notificationLogService.record(task.getId(), today, NotifyType.REMIND,
+                    task.getUserId(), false, "目标用户不存在或无openid");
             return;
         }
 
@@ -160,18 +162,34 @@ public class CheckInReminderTask {
         log.info("发送叮咚提醒: taskId={}, userId={}, title={}",
                 task.getId(), task.getUserId(), task.getTitle());
 
-        subscribeMessageService.sendRemindMessage(
-                targetUser.getOpenid(),
-                task.getTitle(),
-                remindTime,
-                supervisorName);
+        try {
+            subscribeMessageService.sendRemindMessage(
+                    targetUser.getOpenid(),
+                    task.getTitle(),
+                    remindTime,
+                    supervisorName);
+            // 记录发送成功
+            notificationLogService.record(task.getId(), today, NotifyType.REMIND,
+                    task.getUserId(), true, null);
+        } catch (Exception e) {
+            log.error("叮咚提醒发送失败: taskId={}", task.getId(), e);
+            notificationLogService.record(task.getId(), today, NotifyType.REMIND,
+                    task.getUserId(), false, e.getMessage());
+        }
     }
 
     /**
-     * 发送漏打卡通知给监督者
+     * 发送漏打卡通知（带防重检查）
      */
-    private void sendMissedNotification(CheckInTask task, LocalDateTime remindTime, Map<Long, SysUser> userMap) {
+    private void sendMissedNotificationWithCheck(CheckInTask task, LocalDate today,
+            LocalDateTime remindTime, Map<Long, SysUser> userMap) {
         if (task.getCreatorId() == null) {
+            return;
+        }
+
+        // Redis + 数据库双保险防重
+        if (!notificationLogService.tryAcquireNotifyLock(task.getId(), today, NotifyType.MISSED)) {
+            log.debug("漏打卡通知已发送过: taskId={}, date={}", task.getId(), today);
             return;
         }
 
@@ -180,6 +198,8 @@ public class CheckInReminderTask {
 
         if (supervisor == null || supervisor.getOpenid() == null) {
             log.warn("无法发送漏打卡通知：监督者不存在或无openid, taskId={}", task.getId());
+            notificationLogService.record(task.getId(), today, NotifyType.MISSED,
+                    task.getCreatorId(), false, "监督者不存在或无openid");
             return;
         }
 
@@ -188,11 +208,20 @@ public class CheckInReminderTask {
         log.info("发送漏打卡通知: taskId={}, supervisorId={}, supervisedName={}",
                 task.getId(), task.getCreatorId(), supervisedName);
 
-        subscribeMessageService.sendMissedCheckInMessage(
-                supervisor.getOpenid(),
-                supervisedName,
-                task.getTitle(),
-                remindTime);
+        try {
+            subscribeMessageService.sendMissedCheckInMessage(
+                    supervisor.getOpenid(),
+                    supervisedName,
+                    task.getTitle(),
+                    remindTime);
+            // 记录发送成功
+            notificationLogService.record(task.getId(), today, NotifyType.MISSED,
+                    task.getCreatorId(), true, null);
+        } catch (Exception e) {
+            log.error("漏打卡通知发送失败: taskId={}", task.getId(), e);
+            notificationLogService.record(task.getId(), today, NotifyType.MISSED,
+                    task.getCreatorId(), false, e.getMessage());
+        }
     }
 
     /**
@@ -210,14 +239,5 @@ public class CheckInReminderTask {
         } else {
             return repeatType.matchesDayOfWeek(dayOfWeek);
         }
-    }
-
-    /**
-     * 清理过期缓存
-     */
-    private void cleanExpiredCache(LocalDate today) {
-        String todayPrefix = "-" + today;
-        sentRemindCache.entrySet().removeIf(entry -> !entry.getKey().endsWith(todayPrefix));
-        sentMissedCache.entrySet().removeIf(entry -> !entry.getKey().endsWith(todayPrefix));
     }
 }

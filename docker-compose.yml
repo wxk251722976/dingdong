@@ -35,6 +35,28 @@ services:
       - dingdong-network
 
   # ============================================
+  # Redis 缓存服务
+  # ============================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: dingdong-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      # 数据持久化
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123456}
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123456}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dingdong-network
+
+  # ============================================
   # Spring Boot 后端服务
   # ============================================
   server:
@@ -46,19 +68,63 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # 数据库配置
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DATABASE: ${MYSQL_DATABASE:-dingdong}
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123456}
       # 微信小程序配置
       WECHAT_APPID: ${WECHAT_APPID:-wx795c5d8116f6f996}
       WECHAT_SECRET: ${WECHAT_SECRET:-6955e494a9e64bc4e06e57c489021132}
+      # SeaweedFS 配置（Docker网络内使用服务名）
+      SEAWEEDFS_MASTER_URL: http://seaweedfs-master:9333
+      SEAWEEDFS_VOLUME_URL: http://seaweedfs-volume:8082
+      SEAWEEDFS_PUBLIC_URL: ${SEAWEEDFS_PUBLIC_URL:-http://localhost:8082}
       # Spring 配置
       SPRING_PROFILES_ACTIVE: docker
     ports:
       - "${SERVER_PORT:-8080}:8080"
+    networks:
+      - dingdong-network
+
+  # ============================================
+  # SeaweedFS 文件存储服务 (Master)
+  # ============================================
+  seaweedfs-master:
+    image: chrislusf/seaweedfs
+    container_name: dingdong-seaweedfs-master
+    restart: unless-stopped
+    ports:
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
+      - "19333:19333"
+    command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0 -defaultReplication=000"
+    volumes:
+      - seaweedfs_master_data:/data
+    networks:
+      - dingdong-network
+
+  # ============================================
+  # SeaweedFS 文件存储服务 (Volume)
+  # ============================================
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs
+    container_name: dingdong-seaweedfs-volume
+    restart: unless-stopped
+    ports:
+      - "${SEAWEEDFS_VOLUME_PORT:-8082}:8082"
+      - "18082:18082"
+    command: "volume -mserver=seaweedfs-master:9333 -ip.bind=0.0.0.0 -port=8082"
+    depends_on:
+      - seaweedfs-master
+    volumes:
+      - seaweedfs_volume_data:/data
     networks:
       - dingdong-network
 
@@ -74,4 +140,10 @@ networks:
 # ============================================
 volumes:
   mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  seaweedfs_master_data:
+    driver: local
+  seaweedfs_volume_data:
     driver: local

@@ -9,6 +9,20 @@ spring:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:dingdong}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: ${MYSQL_PASSWORD:root123456}
+  # Redis 配置
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis123456}
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
   output:
     ansi:
       enabled: always
@@ -30,10 +44,16 @@ wx:
     secret: ${WECHAT_SECRET:6955e494a9e64bc4e06e57c489021132}
     # 订阅消息模板ID（需要在微信公众平台配置后替换）
     subscribe-message:
-      remind-checkin: ${WECHAT_TPL_REMIND:YOUR_REMIND_TEMPLATE_ID}
-      checkin-complete: ${WECHAT_TPL_COMPLETE:YOUR_COMPLETE_TEMPLATE_ID}
-      missed-checkin: ${WECHAT_TPL_MISSED:YOUR_MISSED_TEMPLATE_ID}
+      remind-checkin: ${WECHAT_TPL_REMIND:cYBb1tfi0grr6lYQhSwp9ay9mOdsBqfRPfuuSETkR74}
+      checkin-complete: ${WECHAT_TPL_COMPLETE:cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q}
+      missed-checkin: ${WECHAT_TPL_MISSED:cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q}
 
 jwt:
   secret: 81e5b1e6c30e0e92118a8eb8a005d4a8001162db217d9a505393434cd178b024  # JWT 密钥（至少32字符）
   expiration: 604800000  # Token 有效期（毫秒，默认7天）
+
+# SeaweedFS 文件存储配置
+seaweedfs:
+  master-url: ${SEAWEEDFS_MASTER_URL:http://localhost:9333}
+  volume-url: ${SEAWEEDFS_VOLUME_URL:http://localhost:8082}
+  public-url: ${SEAWEEDFS_PUBLIC_URL:http://localhost:8082}

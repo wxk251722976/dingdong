@@ -1,9 +1,24 @@
 <template>
 	<div class="login-container">
 		<div class="header">
-			<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+			<!-- 头像选择区域 -->
+			<button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
+				<image class="avatar-img" :src="userAvatar || '/static/logo.png'" mode="aspectFill"></image>
+				<div class="avatar-tip">点击选择头像</div>
+			</button>
 			<div class="title">DingDong</div>
 			<div class="subtitle">家庭关爱提醒助手</div>
+		</div>
+		
+		<!-- 昵称输入（微信新版本需要用户授权） -->
+		<div class="nickname-section">
+			<input 
+				type="nickname" 
+				class="nickname-input" 
+				placeholder="请输入昵称" 
+				v-model="userNickname"
+				@blur="onNicknameInput"
+			/>
 		</div>
 		
 		<!-- 邀请提示 -->
@@ -12,7 +27,7 @@
 		</div>
 
 		<div class="auth-section">
-			<button class="login-btn" type="primary" @click="handleLogin">微信一键登录</button>
+			<button class="login-btn" type="primary" @click="handleLogin">微信登录</button>
 		</div>
 	</div>
 </template>
@@ -24,6 +39,10 @@ import request from '@/utils/request';
 const inviteInfo = ref(null);
 const inviteUserId = ref(null);
 const inviteRelationName = ref(null);
+
+// 用户头像和昵称
+const userAvatar = ref('');
+const userNickname = ref('');
 
 onMounted(() => {
 	// 解析邀请参数
@@ -43,6 +62,21 @@ onMounted(() => {
 	}
 });
 
+// 选择头像回调
+const onChooseAvatar = (e) => {
+	const avatarUrl = e.detail.avatarUrl;
+	if (avatarUrl) {
+		userAvatar.value = avatarUrl;
+		console.log('用户选择头像:', avatarUrl);
+	}
+};
+
+// 昵称输入回调
+const onNicknameInput = (e) => {
+	// 微信 type="nickname" 会自动填充昵称
+	console.log('用户昵称:', userNickname.value);
+};
+
 const handleLogin = () => {
 	uni.login({
 		provider: 'weixin',
@@ -54,8 +88,8 @@ const handleLogin = () => {
 						method: 'POST',
 						data: {
 							code: res.code,
-							nickname: '微信用户',
-							avatar: ''
+							nickname: userNickname.value || '微信用户',
+							avatar: userAvatar.value || ''
 						}
 					});
 					// result 包含 { user, token, refreshToken }

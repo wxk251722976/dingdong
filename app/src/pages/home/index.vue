@@ -5,6 +5,11 @@
       <div class="sub-text">今天叮咚了吗？</div>
     </div>
 
+    <!-- 订阅授权提示 -->
+    <div class="notify-tip" v-if="!hasRequestedSubscribe" @click="requestSubscribe">
+      🔔 开启消息通知，不再错过提醒
+    </div>
+
     <!-- Main Circular Button -->
     <div class="main-action">
       <div class="circle-btn" @click="handleCheckIn" :class="{ disabled: !currentTask }">
@@ -53,7 +58,7 @@
     </div>
 
     <div class="footer-link" @click="goToHistory">
-      查看历史记录 >
+      查看历史记录 <view class="arrow-link"></view>
     </div>
   </div>
 </template>
@@ -62,7 +67,7 @@
 import request from '@/utils/request';
 import { TaskStatus } from '@/utils/constants';
 import { formatTimestamp } from '@/utils/dateUtils';
-import { requestSupervisedSubscribe } from '@/utils/subscribe';
+import { requestAllSubscribe } from '@/utils/subscribe';
 
 export default {
   data() {
@@ -81,12 +86,24 @@ export default {
     }
   },
   onLoad() {
-    // 首次进入页面时请求订阅授权
-    if (!this.hasRequestedSubscribe) {
-      this.requestSubscribe();
+    // 检查登录状态
+    const token = uni.getStorageSync('token');
+    if (!token) {
+      // 未登录，跳转到登录页
+      uni.reLaunch({ url: '/pages/login/index' });
+      return;
+    }
+    // 自动订阅已移除，改为用户点击触发
+    if (uni.getStorageSync('has_authorized_all')) {
+        this.hasRequestedSubscribe = true;
     }
   },
   onShow() {
+    // 检查登录状态
+    const token = uni.getStorageSync('token');
+    if (!token) {
+      return; // 未登录不调用接口
+    }
     this.updateTime();
     this.timer = setInterval(this.updateTime, 1000);
     this.fetchDailyTasks();
@@ -103,9 +120,11 @@ export default {
      */
     async requestSubscribe() {
       try {
-        const result = await requestSupervisedSubscribe();
-        console.log('被监督者订阅授权结果:', result);
+        const result = await requestAllSubscribe();
+        console.log('订阅授权结果:', result);
         this.hasRequestedSubscribe = true;
+        // 记录全局授权标志
+        uni.setStorageSync('has_authorized_all', true);
       } catch (e) {
         console.error('请求订阅授权失败:', e);
       }
@@ -233,6 +252,23 @@ export default {
   font-size: 36rpx;
   color: #666666;
   margin-top: 20rpx;
+}
+
+.notify-tip {
+  font-size: 26rpx;
+  color: #07c160;
+  background-color: rgba(7, 193, 96, 0.1);
+  padding: 16rpx 32rpx;
+  border-radius: 40rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.notify-tip:active {
+  opacity: 0.8;
+  transform: scale(0.98);
 }
 
 .main-action {
@@ -363,5 +399,17 @@ export default {
   color: #999999;
   padding: 20rpx;
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow-link {
+  width: 12rpx;
+  height: 12rpx;
+  border-top: 3rpx solid #999;
+  border-right: 3rpx solid #999;
+  transform: rotate(45deg);
+  margin-left: 8rpx;
 }
 </style>

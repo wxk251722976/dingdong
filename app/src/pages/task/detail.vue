@@ -6,9 +6,11 @@
         <div class="task-status" :class="statusClass">{{ statusText }}</div>
       </div>
       
+      <div class="task-desc" v-if="isValidDescription">{{ task.description }}</div>
+      
       <!-- 创建者信息 -->
       <div class="creator-info" v-if="task.creatorName">
-        <image class="creator-avatar" :src="task.creatorAvatar || '/static/logo.png'" mode="aspectFill"></image>
+        <image class="creator-avatar" :src="validCreatorAvatar" mode="aspectFill"></image>
         <div class="creator-detail">
           <div class="creator-name">{{ task.creatorName }} 设置</div>
           <div class="create-time">{{ formatCreateTime(task.createTime) }}</div>
@@ -50,7 +52,7 @@
 </template>
 
 <script>
-import request from '@/utils/request';
+import request, { BASE_URL } from '@/utils/request';
 import { TaskStatus, RepeatType } from '@/utils/constants';
 import { formatTimestamp } from '@/utils/dateUtils';
 
@@ -76,7 +78,30 @@ export default {
     },
     repeatTypeText() {
       const type = Object.values(RepeatType).find(t => t.code === this.task.repeatType);
-      return type ? type.name : '未知';
+      // Use .desc as defined in constants.js
+      return type ? type.desc : '未知';
+    },
+    isValidDescription() {
+        if (!this.task.description) return false;
+        // 过滤掉临时文件路径或看起来像URL的内容（如果是纯链接通常不直接展示在文本区）
+        if (this.task.description.startsWith('http://tmp') || this.task.description.startsWith('wxfile://')) {
+            return false;
+        }
+        return true;
+    },
+    validCreatorAvatar() {
+        const avatar = this.task.creatorAvatar;
+        // Basic validation
+        if (!avatar || typeof avatar !== 'string') return '/static/logo.png';
+        
+        // Defensive: Check for obviously wrong values (like timestamps or huge strings)
+        if (avatar.length > 300) return '/static/logo.png';
+        if (avatar.includes('创建') || avatar.indexOf('202') === 0) return '/static/logo.png'; // Matches "2026-..." pattern
+        
+        if (avatar.startsWith('http')) return avatar;
+        if (avatar.startsWith('/')) return BASE_URL + avatar;
+        
+        return avatar;
     }
   },
   onLoad(options) {
@@ -182,6 +207,16 @@ export default {
   font-size: 24rpx;
   padding: 8rpx 20rpx;
   border-radius: 20rpx;
+}
+
+.task-desc {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 30rpx;
+  background-color: #f8f8f8;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  line-height: 1.5;
 }
 
 .creator-info {

@@ -5,13 +5,13 @@
 
 // 订阅消息模板ID - 需要与后端配置保持一致
 // 在微信公众平台获取实际的模板ID后替换这里的值
-const TEMPLATE_IDS = {
-    // 叮咚提醒模板 - 发送给被叮咚者
-    REMIND_CHECKIN: 'YOUR_REMIND_TEMPLATE_ID',
-    // 打卡完成通知模板 - 发送给监督者
-    CHECKIN_COMPLETE: 'YOUR_COMPLETE_TEMPLATE_ID',
-    // 漏打卡通知模板 - 发送给监督者
-    MISSED_CHECKIN: 'YOUR_MISSED_TEMPLATE_ID'
+export const TEMPLATE_IDS = {
+    // 叮咚提醒模板 - 发送给被叮咚者 (任务提醒)
+    REMIND_CHECKIN: 'cYBb1tfi0grr6lYQhSwp9ay9mOdsBqfRPfuuSETkR74',
+    // 打卡完成通知模板 - 发送给监督者 (打卡成功)
+    CHECKIN_COMPLETE: 'cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q',
+    // 漏打卡通知模板 - 发送给监督者 (漏打卡 - 使用同一模板)
+    MISSED_CHECKIN: 'cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q'
 };
 
 /**
@@ -22,19 +22,25 @@ const TEMPLATE_IDS = {
 export function requestSubscribeMessage(tmplIds) {
     return new Promise((resolve, reject) => {
         // #ifdef MP-WEIXIN
+        // 去重模板ID
+        const uniqueIds = [...new Set(tmplIds)];
         uni.requestSubscribeMessage({
-            tmplIds: tmplIds,
+            tmplIds: uniqueIds,
             success(res) {
                 console.log('订阅消息授权结果:', res);
                 resolve(res);
             },
             fail(err) {
-                console.error('订阅消息授权失败:', err);
-                // 如果用户拒绝或关闭，不视为错误
-                if (err.errCode === 20004) {
-                    // 用户关闭了订阅消息弹窗
+
+
+                // 错误码 20004: 用户关闭弹窗
+                // 错误信息包含 'TAP gesture': 非点击触发
+                if (err.errCode === 20004 || (err.errMsg && err.errMsg.includes('TAP gesture'))) {
+                    // 视为被取消或环境限制，不抛出异常
+                    console.log('订阅消息被取消或非点击触发:', err.errMsg);
                     resolve({ cancelled: true });
                 } else {
+                    console.error('订阅消息授权失败:', err);
                     reject(err);
                 }
             }

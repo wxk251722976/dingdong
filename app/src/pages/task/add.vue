@@ -13,8 +13,16 @@
     </div>
 
     <div class="form-group">
-      <div class="label">任务内容：</div>
+      <div class="label">任务标题：</div>
       <input class="input" placeholder="例如：晚上10点睡觉" v-model="content" />
+    </div>
+
+    <div class="form-group">
+      <div class="label">任务详情：</div>
+      <div class="textarea-wrapper">
+        <textarea class="textarea" placeholder="请输入详细内容（50字以内）" maxlength="50" v-model="description" />
+        <div class="word-count">{{ description.length }}/50</div>
+      </div>
     </div>
 
     <!-- 任务类型选择 -->
@@ -90,6 +98,7 @@ export default {
       supervisedUsers: [],
       selectedIndex: 0,
       content: '',
+      description: '',
       repeatType: RepeatType.DAILY.code,
       
       // 重复任务
@@ -122,22 +131,42 @@ export default {
           data: { taskId: this.taskId }
         });
         
+        console.log('Task Detail:', task); // Debug log
+        
         if (task) {
           this.content = task.title || '';
+          this.description = task.description || '';
           this.repeatType = task.repeatType;
           this.targetUserName = task.userName || '用户';
           
           if (task.remindTime) {
+            console.log('Task remindTime:', task.remindTime); // Debug log
+            
             // 使用公共方法处理时间戳/日期字符串
             const datePart = formatTimestamp(task.remindTime, 'date');
-            const timeStr = formatTimestamp(task.remindTime, 'time');
+            let timeStr = formatTimestamp(task.remindTime, 'time');
+            
+            console.log('Formatted timeStr:', timeStr); // Debug log
+            
+            // 防御性代码：确保 timeStr 是有效的字符串
+            // 过滤掉 'false', '0NaN:NaN' 等异常值
+            if (!timeStr || timeStr === 'false' || timeStr.includes('NaN')) {
+                console.warn('Invalid timeStr detected, resetting to default.');
+                timeStr = '12:00';
+            }
             
             if (this.repeatType === RepeatType.ONCE.code) {
               this.onceDate = datePart;
               this.onceTime = timeStr;
             } else {
               this.time = timeStr;
+              // 强制刷新：有时候 Vue 2 的响应式可能有延迟，虽然这里是 Vue 3 (UniApp)，但防一手
+              this.$forceUpdate && this.$forceUpdate();
             }
+          } else {
+              // No remind time? Default time is already set to 12:00 in data()
+              // But ensure it's not overwritten by previous dirty data if reusing component
+              this.time = '12:00';
           }
         }
       } catch (e) {
@@ -224,6 +253,7 @@ export default {
             data: {
               taskId: this.taskId,
               title: this.content,
+              description: this.description,
               remindTime,
               repeatType: this.repeatType
             }
@@ -238,6 +268,7 @@ export default {
               creatorId,
               userId: targetUser.id,
               title: this.content,
+              description: this.description,
               remindTime,
               repeatType: this.repeatType
             }
@@ -300,6 +331,28 @@ export default {
   border-radius: 12rpx;
   font-size: 32rpx;
   color: #333;
+}
+
+.textarea-wrapper {
+  background-color: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx;
+  position: relative;
+}
+
+.textarea {
+  width: 100%;
+  height: 160rpx;
+  font-size: 32rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.word-count {
+  text-align: right;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 10rpx;
 }
 
 .picker-input.readonly {

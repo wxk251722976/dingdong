@@ -6,6 +6,7 @@ import com.dingdong.common.constant.TaskEnabled;
 import com.dingdong.common.context.SystemContextHolder;
 import com.dingdong.dto.checkin.DailyTaskStatusDTO;
 import com.dingdong.dto.checkin.TaskDTO;
+import com.dingdong.dto.checkin.TaskUpdateDTO;
 import com.dingdong.entity.checkin.CheckInTask;
 import com.dingdong.service.checkin.ICheckInTaskService;
 import com.dingdong.service.user.ISysUserService;
@@ -13,8 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.HashMap;
+
 import java.util.List;
 import java.util.Map;
 
@@ -43,80 +43,108 @@ public class TaskController {
      * 获取当前用户每日任务及完成状态
      */
     @GetMapping("/daily")
-    public Result<List<DailyTaskStatusDTO>> getDailyTasks(
+    public Result<List<com.dingdong.vo.checkin.DailyTaskStatusVO>> getDailyTasks(
             @RequestParam(required = false) String date) {
         Long userId = SystemContextHolder.getUserId();
         LocalDate localDate = (date == null) ? LocalDate.now() : LocalDate.parse(date);
-        return Result.success(taskService.getDailyTaskStatus(userId, localDate));
+        List<DailyTaskStatusDTO> dtos = taskService.getDailyTaskStatus(userId, localDate);
+
+        List<com.dingdong.vo.checkin.DailyTaskStatusVO> vos = dtos.stream().map(dto -> {
+            com.dingdong.vo.checkin.DailyTaskStatusVO vo = new com.dingdong.vo.checkin.DailyTaskStatusVO();
+            vo.setTaskId(dto.getTaskId());
+            vo.setTitle(dto.getTitle());
+            vo.setRemindTime(dto.getRemindTime());
+            vo.setRepeatType(dto.getRepeatType());
+            vo.setStatus(dto.getStatus());
+            vo.setCheckTime(dto.getCheckTime());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(vos);
     }
 
     /**
      * 获取指定被监督用户的任务列表（当前用户作为创建者/监督者）
      */
     @GetMapping("/list")
-    public Result<List<DailyTaskStatusDTO>> getTaskList(@RequestParam Long userId) {
+    public Result<List<com.dingdong.vo.checkin.DailyTaskStatusVO>> getTaskList(@RequestParam Long userId) {
         // creatorId从上下文获取（当前登录用户就是监督者）
         Long creatorId = SystemContextHolder.getUserId();
-        return Result.success(taskService.getDailyTaskStatusByCreator(userId, LocalDate.now(), creatorId));
+        List<DailyTaskStatusDTO> dtos = taskService.getDailyTaskStatusByCreator(userId, LocalDate.now(), creatorId);
+
+        List<com.dingdong.vo.checkin.DailyTaskStatusVO> vos = dtos.stream().map(dto -> {
+            com.dingdong.vo.checkin.DailyTaskStatusVO vo = new com.dingdong.vo.checkin.DailyTaskStatusVO();
+            vo.setTaskId(dto.getTaskId());
+            vo.setTitle(dto.getTitle());
+            vo.setRemindTime(dto.getRemindTime());
+            vo.setRepeatType(dto.getRepeatType());
+            vo.setStatus(dto.getStatus());
+            vo.setCheckTime(dto.getCheckTime());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(vos);
     }
 
     /**
      * 获取任务详情
      */
     @GetMapping("/detail")
-    public Result<Map<String, Object>> getTaskDetail(@RequestParam Long taskId) {
+    public Result<com.dingdong.vo.checkin.TaskDetailVO> getTaskDetail(@RequestParam Long taskId) {
         CheckInTask task = taskService.getById(taskId);
         if (task == null) {
             return Result.error("任务不存在");
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("taskId", task.getId());
-        result.put("title", task.getTitle());
-        result.put("remindTime", task.getRemindTime());
-        result.put("repeatType", task.getRepeatType());
-        result.put("userId", task.getUserId());
-        result.put("createTime", task.getCreateTime());
+        com.dingdong.vo.checkin.TaskDetailVO vo = new com.dingdong.vo.checkin.TaskDetailVO();
+        vo.setTaskId(task.getId());
+        vo.setTitle(task.getTitle());
+        vo.setDescription(task.getDescription());
+        vo.setRemindTime(task.getRemindTime());
+        vo.setRepeatType(task.getRepeatType());
+        vo.setUserId(task.getUserId());
+        vo.setCreateTime(task.getCreateTime());
 
         // 获取任务目标用户名称
         if (task.getUserId() != null) {
             com.dingdong.entity.user.SysUser user = sysUserService.getById(task.getUserId());
-            result.put("userName", user != null ? user.getNickname() : "未知用户");
+            vo.setUserName(user != null ? user.getNickname() : "未知用户");
         }
 
         // 获取创建者信息
         if (task.getCreatorId() != null) {
             com.dingdong.entity.user.SysUser creator = sysUserService.getById(task.getCreatorId());
             if (creator != null) {
-                result.put("creatorId", creator.getId());
-                result.put("creatorName", creator.getNickname());
-                result.put("creatorAvatar", creator.getAvatar());
+                vo.setCreatorId(creator.getId());
+                vo.setCreatorName(creator.getNickname());
+                vo.setCreatorAvatar(creator.getAvatar());
             }
         }
 
-        return Result.success(result);
+        return Result.success(vo);
     }
 
     /**
      * 更新任务
      */
     @PostMapping("/update")
-    public Result<Boolean> updateTask(@RequestBody Map<String, Object> params) {
-        Long taskId = Long.valueOf(params.get("taskId").toString());
-
-        CheckInTask task = taskService.getById(taskId);
+    public Result<Boolean> updateTask(@RequestBody TaskUpdateDTO updateDTO) {
+        CheckInTask task = taskService.getById(updateDTO.getTaskId());
         if (task == null) {
             return Result.error("任务不存在");
         }
 
-        if (params.containsKey("title")) {
-            task.setTitle((String) params.get("title"));
+        if (updateDTO.getTitle() != null) {
+            task.setTitle(updateDTO.getTitle());
         }
-        if (params.containsKey("repeatType")) {
-            task.setRepeatType(Integer.valueOf(params.get("repeatType").toString()));
+        if (updateDTO.getDescription() != null) {
+            task.setDescription(updateDTO.getDescription());
         }
-        if (params.containsKey("remindTime")) {
-            task.setRemindTime(LocalDateTime.parse((String) params.get("remindTime")));
+        if (updateDTO.getRepeatType() != null) {
+            task.setRepeatType(updateDTO.getRepeatType());
+        }
+        if (updateDTO.getRemindTime() != null) {
+            task.setRemindTime(updateDTO.getRemindTime());
         }
 
         return Result.success(taskService.updateById(task));

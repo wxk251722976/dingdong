@@ -1,8 +1,13 @@
 <template>
   <div class="container">
+    <!-- 订阅授权提示 -->
+    <div class="notify-tip" v-if="!hasRequestedSubscribe" @click="requestSubscribe">
+      🔔 开启消息通知，第一时间接收打卡动态
+    </div>
+
     <div class="list-container">
       <div class="user-card" v-for="(item, index) in supervisedUsers" :key="index" @click="viewDetail(item)">
-        <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill" @error="handleImgError(index)"></image>
+        <image class="avatar" :src="formatAvatar(item.avatar) || '/static/logo.png'" mode="aspectFill" @error="handleImgError(index)"></image>
         <div class="info">
           <div class="name-row">
             <text class="name">{{ item.nickname || '用户' }}</text>
@@ -36,9 +41,9 @@
 </template>
 
 <script>
-import request from '@/utils/request';
+import request, { BASE_URL } from '@/utils/request';
 import { TaskStatus } from '@/utils/constants';
-import { requestSupervisorSubscribe } from '@/utils/subscribe';
+import { requestAllSubscribe } from '@/utils/subscribe';
 
 export default {
   data() {
@@ -49,9 +54,10 @@ export default {
   },
   onShow() {
     this.fetchSupervisedUsers();
-    // 首次进入页面时请求订阅授权
-    if (!this.hasRequestedSubscribe) {
-      this.requestSubscribe();
+    
+    // 检查全局授权状态
+    if (uni.getStorageSync('has_authorized_all')) {
+        this.hasRequestedSubscribe = true;
     }
   },
   methods: {
@@ -61,9 +67,11 @@ export default {
      */
     async requestSubscribe() {
       try {
-        const result = await requestSupervisorSubscribe();
+        const result = await requestAllSubscribe();
         console.log('监督者订阅授权结果:', result);
         this.hasRequestedSubscribe = true;
+        // 记录全局授权标志
+        uni.setStorageSync('has_authorized_all', true);
       } catch (e) {
         console.error('请求订阅授权失败:', e);
       }
@@ -77,6 +85,7 @@ export default {
         const users = await request({
           url: '/checkIn/supervisor/status'
         });
+        console.log('监督列表数据:', users);
         
         this.supervisedUsers = users || [];
       } catch (e) {
@@ -86,7 +95,9 @@ export default {
     viewDetail(item) {
       // 跳转到该用户的任务列表页面
       const nickname = encodeURIComponent(item.nickname || '用户');
-      const avatar = encodeURIComponent(item.avatar || '');
+      // 使用处理后的头像URL
+      const avatarUrl = this.formatAvatar(item.avatar);
+      const avatar = encodeURIComponent(avatarUrl || '');
       uni.navigateTo({ 
         url: `/pages/task/list?userId=${item.userId}&nickname=${nickname}&avatar=${avatar}` 
       });
@@ -98,6 +109,20 @@ export default {
         if (this.supervisedUsers[index]) {
             this.supervisedUsers[index].avatar = '';
         }
+    },
+    formatAvatar(url) {
+        if (!url) return '';
+        // 检查常见的绝对路径协议
+        if (url.match(/^(http|wxfile|data|blob):/)) {
+            return url;
+        }
+        
+        // 拼接 BASE_URL
+        // 移除 url 开头的 / 和 BASE_URL 结尾的 / (如果有) 以免重复，这里假设 BASE_URL 规范
+        if (url.startsWith('/')) {
+            return BASE_URL + url;
+        }
+        return BASE_URL + '/' + url;
     }
   }
 }
@@ -109,6 +134,24 @@ export default {
   padding: 30rpx;
   box-sizing: border-box;
 }
+
+.notify-tip {
+  font-size: 26rpx;
+  color: #07c160;
+  background-color: rgba(7, 193, 96, 0.1);
+  padding: 20rpx 32rpx;
+  border-radius: 12rpx;
+  margin-bottom: 30rpx;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.notify-tip:active {
+  opacity: 0.8;
+  transform: scale(0.99);
+}
+
 .user-card {
   background-color: #fff;
   border-radius: 20rpx;

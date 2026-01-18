@@ -41,12 +41,20 @@ public class UserController {
      * 获取当前用户信息
      */
     @GetMapping("/info")
-    public Result<SysUser> getUserInfo() {
+    public Result<com.dingdong.vo.user.UserVO> getUserInfo() {
         Long userId = SystemContextHolder.getUserId();
         SysUser user = sysUserService.getById(userId);
         if (user == null) {
             return Result.error("用户不存在");
         }
-        return Result.success(user);
+
+        com.dingdong.vo.user.UserVO vo = new com.dingdong.vo.user.UserVO();
+        vo.setId(user.getId());
+        vo.setNickname(user.getNickname());
+        vo.setAvatar(user.getAvatar());
+        vo.setLevelCode(user.getLevelCode());
+        vo.setLevelName(user.getLevelName());
+
+        return Result.success(vo);
     }
 }

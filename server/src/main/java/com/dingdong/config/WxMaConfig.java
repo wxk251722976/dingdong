@@ -28,11 +28,11 @@ public class WxMaConfig {
 
     @Data
     public static class SubscribeMessage {
-        /** 叮咚提醒模板ID */
+        /** 叮咚提醒模板ID (任务提醒) - cYBb1tfi0grr6lYQhSwpay9mOdsBqfRPfuuSETkR74 */
         private String remindCheckin;
-        /** 打卡完成通知模板ID */
+        /** 打卡完成通知模板ID (打卡成功/补卡) - cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q */
         private String checkinComplete;
-        /** 漏打卡通知模板ID */
+        /** 漏打卡通知模板ID (使用打卡成功模板) - cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q */
         private String missedCheckin;
     }
 

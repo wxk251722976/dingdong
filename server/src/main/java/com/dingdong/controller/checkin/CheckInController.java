@@ -31,9 +31,21 @@ public class CheckInController {
      * 获取监督用户的今日状态列表
      */
     @GetMapping("/supervisor/status")
-    public Result<List<SupervisedUserStatusDTO>> getSupervisedUserStatusList() {
+    public Result<List<com.dingdong.vo.checkin.SupervisedUserStatusVO>> getSupervisedUserStatusList() {
         Long supervisorId = SystemContextHolder.getUserId();
-        return Result.success(checkInTaskService.getSupervisedUserStatusList(supervisorId));
+        List<SupervisedUserStatusDTO> dtos = checkInTaskService.getSupervisedUserStatusList(supervisorId);
+
+        List<com.dingdong.vo.checkin.SupervisedUserStatusVO> vos = dtos.stream().map(dto -> {
+            com.dingdong.vo.checkin.SupervisedUserStatusVO vo = new com.dingdong.vo.checkin.SupervisedUserStatusVO();
+            vo.setUserId(dto.getUserId());
+            vo.setNickname(dto.getNickname());
+            vo.setAvatar(dto.getAvatar());
+            vo.setRelationName(dto.getRelationName());
+            vo.setTodayStatus(dto.getTodayStatus());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(vos);
     }
 
     /**
@@ -56,9 +68,21 @@ public class CheckInController {
      * @return 叮咚记录列表，按时间倒序排列
      */
     @GetMapping("/logs")
-    public Result<List<CheckInLog>> getLogs() {
+    public Result<List<com.dingdong.vo.checkin.CheckInLogVO>> getLogs() {
         Long userId = SystemContextHolder.getUserId();
-        return Result.success(checkInLogService.getLogsByUserId(userId));
+        List<CheckInLog> logs = checkInLogService.getLogsByUserId(userId);
+
+        // 转换为 VO
+        List<com.dingdong.vo.checkin.CheckInLogVO> logVOs = logs.stream().map(log -> {
+            com.dingdong.vo.checkin.CheckInLogVO vo = new com.dingdong.vo.checkin.CheckInLogVO();
+            vo.setId(log.getId());
+            vo.setTaskId(log.getTaskId());
+            vo.setCheckTime(log.getCheckTime());
+            vo.setStatus(log.getStatus());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(logVOs);
     }
 
     /**
@@ -67,9 +91,21 @@ public class CheckInController {
      * @return 绑定的被监督者用户列表
      */
     @GetMapping("/supervised")
-    public Result<List<SysUser>> getSupervisedList() {
+    public Result<List<com.dingdong.vo.user.UserVO>> getSupervisedList() {
         Long supervisorId = SystemContextHolder.getUserId();
-        return Result.success(userRelationService.getSupervisedListBySupervisorId(supervisorId));
+        List<SysUser> users = userRelationService.getSupervisedListBySupervisorId(supervisorId);
+
+        List<com.dingdong.vo.user.UserVO> userVOs = users.stream().map(user -> {
+            com.dingdong.vo.user.UserVO vo = new com.dingdong.vo.user.UserVO();
+            vo.setId(user.getId());
+            vo.setNickname(user.getNickname());
+            vo.setAvatar(user.getAvatar());
+            vo.setLevelCode(user.getLevelCode());
+            vo.setLevelName(user.getLevelName());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(userVOs);
     }
 
     /**

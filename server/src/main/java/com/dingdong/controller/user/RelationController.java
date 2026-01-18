@@ -74,9 +74,21 @@ public class RelationController {
      * @return 关系列表
      */
     @GetMapping("/myRelations")
-    public Result<List<UserRelation>> getMyRelations() {
+    public Result<List<com.dingdong.vo.user.UserRelationVO>> getMyRelations() {
         Long userId = SystemContextHolder.getUserId();
-        return Result.success(relationService.getMyRelations(userId));
+        List<UserRelation> relations = relationService.getMyRelations(userId);
+
+        List<com.dingdong.vo.user.UserRelationVO> vos = relations.stream().map(relation -> {
+            com.dingdong.vo.user.UserRelationVO vo = new com.dingdong.vo.user.UserRelationVO();
+            vo.setId(relation.getId());
+            vo.setSupervisedId(relation.getSupervisedId());
+            vo.setSupervisorId(relation.getSupervisorId());
+            vo.setRelationName(relation.getRelationName());
+            vo.setStatus(relation.getStatus());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(vos);
     }
 
     /**
@@ -86,8 +98,24 @@ public class RelationController {
      * @return 关系展示列表
      */
     @GetMapping("/listWithUserInfo")
-    public Result<List<RelationDisplayDTO>> getRelationsWithUserInfo() {
+    public Result<List<com.dingdong.vo.user.RelationDisplayVO>> getRelationsWithUserInfo() {
         Long userId = SystemContextHolder.getUserId();
-        return Result.success(relationService.getRelationsWithUserInfo(userId));
+        List<RelationDisplayDTO> dtos = relationService.getRelationsWithUserInfo(userId);
+
+        List<com.dingdong.vo.user.RelationDisplayVO> vos = dtos.stream().map(dto -> {
+            com.dingdong.vo.user.RelationDisplayVO vo = new com.dingdong.vo.user.RelationDisplayVO();
+            vo.setId(dto.getId());
+            vo.setSupervisedId(dto.getSupervisedId());
+            vo.setSupervisorId(dto.getSupervisorId());
+            vo.setRelationName(dto.getRelationName());
+            vo.setStatus(dto.getStatus());
+            vo.setOtherUserId(dto.getOtherUserId());
+            vo.setOtherNickname(dto.getOtherNickname());
+            vo.setOtherAvatar(dto.getOtherAvatar());
+            vo.setRole(dto.getRole());
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return Result.success(vos);
     }
 }
