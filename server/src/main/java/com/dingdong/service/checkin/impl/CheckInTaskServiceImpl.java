@@ -69,25 +69,27 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
     }
 
     @Override
-    public List<SupervisedUserStatusDTO> getSupervisedUserStatusList(Long supervisorId) {
-        // 1. 获取已接受的监督关系
-        List<UserRelation> relations = getAcceptedRelations(supervisorId);
+    public List<SupervisedUserStatusDTO> getSupervisedUserStatusList(Long userId) {
+        // 1. 获取已接受的关系（平等关系，用户可能是发起人或伙伴）
+        List<UserRelation> relations = getAcceptedRelations(userId);
         if (relations.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<Long> supervisedUserIds = relations.stream().map(UserRelation::getSupervisedId)
+        // 获取关系中的对方用户ID
+        List<Long> partnerUserIds = relations.stream()
+                .map(r -> r.getInitiatorId().equals(userId) ? r.getPartnerId() : r.getInitiatorId())
                 .collect(Collectors.toList());
-        Map<Long, SysUser> userMap = getUserMap(supervisedUserIds);
+        Map<Long, SysUser> userMap = getUserMap(partnerUserIds);
 
         LocalDate today = LocalDate.now();
 
-        // 2. 获取所有被监督者的今日生效任务
-        List<CheckInTask> activeTasks = getActiveTasksForUsers(supervisedUserIds, supervisorId, today);
+        // 2. 获取所有关系伙伴的今日生效任务（由当前用户创建的）
+        List<CheckInTask> activeTasks = getActiveTasksForUsers(partnerUserIds, userId, today);
 
         // 如果没有任何任务，直接返回所有用户状态为 PENDING
         if (activeTasks.isEmpty()) {
-            return buildResultWithStatus(relations, userMap, TaskStatus.PENDING.getCode());
+            return buildResultWithStatus(relations, userId, userMap, TaskStatus.PENDING.getCode());
         }
 
         // 3. 获取任务的打卡记录
@@ -98,14 +100,25 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
                 .collect(Collectors.groupingBy(CheckInTask::getUserId));
 
         return relations.stream()
-                .map(relation -> buildSupervisedUserStatusDTO(relation, userMap.get(relation.getSupervisedId()),
-                        tasksByUserId, logMap, today))
+                .map(relation -> {
+                    Long partnerId = relation.getInitiatorId().equals(userId) ? relation.getPartnerId()
+                            : relation.getInitiatorId();
+                    return buildSupervisedUserStatusDTO(relation, userMap.get(partnerId), tasksByUserId, logMap, today);
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     @Override
     public boolean createTask(TaskDTO taskDTO) {
+        // 如果是给他人设置任务，必须存在绑定关系 (平等关系，即 mutually accepted)
+        if (!taskDTO.getCreatorId().equals(taskDTO.getUserId())) {
+            boolean isRelated = userRelationService.checkRelation(taskDTO.getCreatorId(), taskDTO.getUserId());
+            if (!isRelated) {
+                throw new RuntimeException("无法创建任务：您与目标用户未绑定关系");
+            }
+        }
+
         CheckInTask task = BeanUtil.toBean(taskDTO, CheckInTask.class);
         task.setStatus(TaskEnabled.ENABLED.getCode());
         return this.save(task);
@@ -181,9 +194,10 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
         return dto;
     }
 
-    private List<UserRelation> getAcceptedRelations(Long supervisorId) {
+    private List<UserRelation> getAcceptedRelations(Long userId) {
+        // 查询用户参与的所有已接受的关系（可能是发起人或伙伴）
         return userRelationService.list(new LambdaQueryWrapper<UserRelation>()
-                .eq(UserRelation::getSupervisorId, supervisorId)
+                .and(w -> w.eq(UserRelation::getInitiatorId, userId).or().eq(UserRelation::getPartnerId, userId))
                 .eq(UserRelation::getStatus, RelationStatus.ACCEPTED.getCode()));
     }
 
@@ -226,9 +240,11 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
     }
 
     private List<SupervisedUserStatusDTO> buildResultWithStatus(
-            List<UserRelation> relations, Map<Long, SysUser> userMap, Integer status) {
+            List<UserRelation> relations, Long currentUserId, Map<Long, SysUser> userMap, Integer status) {
         return relations.stream().map(relation -> {
-            SysUser user = userMap.get(relation.getSupervisedId());
+            Long partnerId = relation.getInitiatorId().equals(currentUserId) ? relation.getPartnerId()
+                    : relation.getInitiatorId();
+            SysUser user = userMap.get(partnerId);
             if (user == null)
                 return null;
 

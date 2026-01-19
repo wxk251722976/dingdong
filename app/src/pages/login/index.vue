@@ -1,24 +1,9 @@
 <template>
 	<div class="login-container">
 		<div class="header">
-			<!-- 头像选择区域 -->
-			<button class="avatar-btn" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
-				<image class="avatar-img" :src="userAvatar || '/static/logo.png'" mode="aspectFill"></image>
-				<div class="avatar-tip">点击选择头像</div>
-			</button>
+			<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
 			<div class="title">DingDong</div>
 			<div class="subtitle">家庭关爱提醒助手</div>
-		</div>
-		
-		<!-- 昵称输入（微信新版本需要用户授权） -->
-		<div class="nickname-section">
-			<input 
-				type="nickname" 
-				class="nickname-input" 
-				placeholder="请输入昵称" 
-				v-model="userNickname"
-				@blur="onNicknameInput"
-			/>
 		</div>
 		
 		<!-- 邀请提示 -->
@@ -40,10 +25,6 @@ const inviteInfo = ref(null);
 const inviteUserId = ref(null);
 const inviteRelationName = ref(null);
 
-// 用户头像和昵称
-const userAvatar = ref('');
-const userNickname = ref('');
-
 onMounted(() => {
 	// 解析邀请参数
 	const pages = getCurrentPages();
@@ -62,21 +43,6 @@ onMounted(() => {
 	}
 });
 
-// 选择头像回调
-const onChooseAvatar = (e) => {
-	const avatarUrl = e.detail.avatarUrl;
-	if (avatarUrl) {
-		userAvatar.value = avatarUrl;
-		console.log('用户选择头像:', avatarUrl);
-	}
-};
-
-// 昵称输入回调
-const onNicknameInput = (e) => {
-	// 微信 type="nickname" 会自动填充昵称
-	console.log('用户昵称:', userNickname.value);
-};
-
 const handleLogin = () => {
 	uni.login({
 		provider: 'weixin',
@@ -88,8 +54,8 @@ const handleLogin = () => {
 						method: 'POST',
 						data: {
 							code: res.code,
-							nickname: userNickname.value || '微信用户',
-							avatar: userAvatar.value || ''
+							nickname: '微信用户',
+							avatar: ''
 						}
 					});
 					// result 包含 { user, token, refreshToken }
@@ -131,7 +97,7 @@ const handleLogin = () => {
 
 <style scoped>
 .login-container {
-	padding: 40px 20px;
+	padding: 40rpx;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -140,28 +106,31 @@ const handleLogin = () => {
 }
 
 .header {
-	margin-top: 60px;
-	margin-bottom: 40px;
-	text-align: center;
+	margin-top: 150rpx;
+	margin-bottom: 100rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
 }
 
 .logo {
-	width: 100px;
-	height: 100px;
-	border-radius: 20px;
-	margin-bottom: 20px;
-	box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+	width: 180rpx;
+	height: 180rpx;
+	border-radius: 40rpx;
+	margin-bottom: 40rpx;
+	box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.1);
 }
 
 .title {
-	font-size: 32px;
+	font-size: 48rpx;
 	font-weight: bold;
 	color: #333;
-	margin-bottom: 8px;
+	margin-bottom: 16rpx;
 }
 
 .subtitle {
-	font-size: 16px;
+	font-size: 32rpx;
 	color: #999;
 }
 
@@ -169,7 +138,7 @@ const handleLogin = () => {
 	background: linear-gradient(135deg, #68FFB4 0%, #4de3a0 100%);
 	padding: 16px 24px;
 	border-radius: 12px;
-	margin-bottom: 40px;
+	margin-bottom: 60px;
 	width: 80%;
 	text-align: center;
 }
@@ -181,9 +150,9 @@ const handleLogin = () => {
 
 .login-btn {
 	width: 80%;
-	height: 50px;
-	border-radius: 25px;
-	font-size: 18px;
+	height: 100rpx;
+	border-radius: 50rpx;
+	font-size: 36rpx;
 	background-color: #07c160;
 	color: #fff;
 	display: flex;
@@ -191,6 +160,7 @@ const handleLogin = () => {
 	align-items: center;
 	padding: 0;
 	border: none;
+	box-shadow: 0 10rpx 20rpx rgba(7, 193, 96, 0.3);
 }
 
 .auth-section {

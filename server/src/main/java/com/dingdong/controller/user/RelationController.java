@@ -4,7 +4,9 @@ import com.dingdong.common.Result;
 import com.dingdong.common.context.SystemContextHolder;
 import com.dingdong.dto.user.BindDTO;
 import com.dingdong.dto.user.RelationDisplayDTO;
+import com.dingdong.entity.user.RelationHistory;
 import com.dingdong.entity.user.UserRelation;
+import com.dingdong.service.user.IRelationHistoryService;
 import com.dingdong.service.user.IUserRelationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,41 @@ import java.util.List;
 public class RelationController {
 
     private final IUserRelationService relationService;
+    private final IRelationHistoryService relationHistoryService;
+
+    /**
+     * 获取关系历史记录
+     */
+    @GetMapping("/history")
+    public Result<List<RelationHistory>> getHistory(@RequestParam Long relationId) {
+        return Result.success(relationHistoryService.getHistoryByRelationId(relationId));
+    }
+
+    /**
+     * 发起解绑
+     * 
+     * @param request 请求体，包含 relationId 和 reason
+     */
+    @PostMapping("/unbind/initiate")
+    public Result<Boolean> initiateUnbind(@RequestBody UnbindRequest request) {
+        Long userId = SystemContextHolder.getUserId();
+        return Result.success(relationService.initiateUnbind(request.getRelationId(), request.getReason(), userId));
+    }
+
+    /**
+     * 撤回解绑
+     */
+    @PostMapping("/unbind/withdraw")
+    public Result<Boolean> withdrawUnbind(@RequestParam Long relationId) {
+        Long userId = SystemContextHolder.getUserId();
+        return Result.success(relationService.withdrawUnbind(relationId, userId));
+    }
+
+    @lombok.Data
+    public static class UnbindRequest {
+        private Long relationId;
+        private String reason;
+    }
 
     /**
      * 直接绑定关系（用于确认邀请时）
@@ -81,8 +118,8 @@ public class RelationController {
         List<com.dingdong.vo.user.UserRelationVO> vos = relations.stream().map(relation -> {
             com.dingdong.vo.user.UserRelationVO vo = new com.dingdong.vo.user.UserRelationVO();
             vo.setId(relation.getId());
-            vo.setSupervisedId(relation.getSupervisedId());
-            vo.setSupervisorId(relation.getSupervisorId());
+            vo.setInitiatorId(relation.getInitiatorId());
+            vo.setPartnerId(relation.getPartnerId());
             vo.setRelationName(relation.getRelationName());
             vo.setStatus(relation.getStatus());
             return vo;
@@ -105,14 +142,15 @@ public class RelationController {
         List<com.dingdong.vo.user.RelationDisplayVO> vos = dtos.stream().map(dto -> {
             com.dingdong.vo.user.RelationDisplayVO vo = new com.dingdong.vo.user.RelationDisplayVO();
             vo.setId(dto.getId());
-            vo.setSupervisedId(dto.getSupervisedId());
-            vo.setSupervisorId(dto.getSupervisorId());
+            vo.setInitiatorId(dto.getInitiatorId());
+            vo.setPartnerId(dto.getPartnerId());
             vo.setRelationName(dto.getRelationName());
             vo.setStatus(dto.getStatus());
             vo.setOtherUserId(dto.getOtherUserId());
             vo.setOtherNickname(dto.getOtherNickname());
             vo.setOtherAvatar(dto.getOtherAvatar());
             vo.setRole(dto.getRole());
+            vo.setUnbindExpireTime(dto.getUnbindExpireTime());
             return vo;
         }).collect(java.util.stream.Collectors.toList());
 

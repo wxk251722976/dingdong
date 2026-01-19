@@ -69,4 +69,32 @@ public interface IUserRelationService extends IService<UserRelation> {
      * @return 关系展示列表
      */
     List<com.dingdong.dto.user.RelationDisplayDTO> getRelationsWithUserInfo(Long userId);
+
+    /**
+     * 发起解除绑定
+     *
+     * @param relationId 关系ID
+     * @param reason     解绑原因
+     * @param operatorId 操作人ID
+     * @return 是否成功
+     */
+    boolean initiateUnbind(Long relationId, String reason, Long operatorId);
+
+    /**
+     * 撤回解除绑定
+     *
+     * @param relationId 关系ID
+     * @param operatorId 操作人ID
+     * @return 是否成功
+     */
+    boolean withdrawUnbind(Long relationId, Long operatorId);
+
+    /**
+     * 检查两个用户是否存在有效绑定关系
+     * 
+     * @param userId      用户A
+     * @param otherUserId 用户B
+     * @return 是否存在
+     */
+    boolean checkRelation(Long userId, Long otherUserId);
 }

@@ -131,7 +131,7 @@ public class WechatApiService {
     public String createActivityId() throws WxErrorException {
         // WxJava 暂不直接支持创建动态消息活动ID，使用底层HTTP调用
         String result = wxMaService.post(
-                "https://api.weixin.qq.com/cgi-bin/message/wxopen/activityid/create",
+                "cgi-bin/message/wxopen/activityid/create",
                 "{}");
         log.info("创建activityId响应: {}", result);
 
@@ -169,7 +169,7 @@ public class WechatApiService {
         });
 
         String result = wxMaService.post(
-                "https://api.weixin.qq.com/cgi-bin/message/wxopen/updatablemsg/send",
+                "cgi-bin/message/wxopen/updatablemsg/send",
                 requestBody);
         log.info("更新动态消息响应: {}", result);
 

@@ -32,6 +32,12 @@
             }
         },
         {
+            "path": "pages/relation/detail",
+            "style": {
+                "navigationBarTitleText": "关系详情"
+            }
+        },
+        {
             "path": "pages/task/add",
             "style": {
                 "navigationBarTitleText": "设置新任务"

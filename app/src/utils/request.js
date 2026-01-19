@@ -20,6 +20,7 @@ const logout = () => {
 
 const request = (options) => {
     return new Promise((resolve, reject) => {
+        console.log('--- 发起请求 ---', options.url);
         const token = uni.getStorageSync('token');
 
         // 确保 header 存在
@@ -31,6 +32,7 @@ const request = (options) => {
             options.header['Authorization'] = `Bearer ${token}`;
         }
 
+        console.log('--- 调用 uni.request ---', BASE_URL + options.url);
         uni.request({
             url: BASE_URL + options.url,
             method: options.method || 'GET',

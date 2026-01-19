@@ -49,18 +49,14 @@ public class UserStatsServiceImpl implements IUserStatsService {
                 stats.setLevelName(levelConfig.getLevelName());
                 stats.setMaxSupervisedCount(levelConfig.getMaxSupervisedCount());
 
-                // 监督关系统计
+                // 关系统计（平等关系，不再区分监督者/被监督者）
                 List<UserRelation> allRelations = relationService.getMyRelations(userId);
-                int supervisedCount = (int) allRelations.stream()
-                                .filter(r -> r.getSupervisorId().equals(userId)
-                                                && RelationStatus.ACCEPTED.getCode().equals(r.getStatus()))
+                // 平等关系下，统计已接受的关系数量
+                int partnerCount = (int) allRelations.stream()
+                                .filter(r -> RelationStatus.ACCEPTED.getCode().equals(r.getStatus()))
                                 .count();
-                int supervisorCount = (int) allRelations.stream()
-                                .filter(r -> r.getSupervisedId().equals(userId)
-                                                && RelationStatus.ACCEPTED.getCode().equals(r.getStatus()))
-                                .count();
-                stats.setSupervisedCount(supervisedCount);
-                stats.setSupervisorCount(supervisorCount);
+                stats.setSupervisedCount(partnerCount); // 兼容旧字段
+                stats.setSupervisorCount(partnerCount); // 兼容旧字段
 
                 // 今日任务统计
                 LocalDate today = LocalDate.now();

@@ -47,6 +47,7 @@ wx:
       remind-checkin: ${WECHAT_TPL_REMIND:cYBb1tfi0grr6lYQhSwp9ay9mOdsBqfRPfuuSETkR74}
       checkin-complete: ${WECHAT_TPL_COMPLETE:cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q}
       missed-checkin: ${WECHAT_TPL_MISSED:cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q}
+      unbind: ${WECHAT_TPL_UNBIND:CTttXRsZsgIOksiCAVmAFWkTAHyXLbd6re1QlFQummM}
 
 jwt:
   secret: 81e5b1e6c30e0e92118a8eb8a005d4a8001162db217d9a505393434cd178b024  # JWT 密钥（至少32字符）

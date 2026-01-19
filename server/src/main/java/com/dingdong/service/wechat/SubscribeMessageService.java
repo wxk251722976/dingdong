@@ -157,10 +157,38 @@ public class SubscribeMessageService {
     }
 
     /**
+     * 发送解绑通知
+     * 模板ID: 461
+     * 标题: 预约通知
+     * 
+     * @param openid        接收者OpenID
+     * @param initiatorName 发起人昵称
+     * @param reason        解绑原因
+     * @param relationName  关系名称
+     */
+    public void sendUnbindMessage(String openid, String initiatorName, String reason, String relationName) {
+        String templateId = wxMaConfig.getSubscribeMessage().getUnbind();
+
+        // 模板ID: 461
+        // 预约人: {{name1.DATA}} -> initiatorName
+        // 取消原因: {{thing72.DATA}} -> reason
+        // 温馨提示: {{thing8.DATA}} -> "xx用户解除xx关系，24小时后生效"
+
+        List<WxMaSubscribeMessage.MsgData> listData = new ArrayList<>();
+        listData.add(new WxMaSubscribeMessage.MsgData("name1", truncateValue(initiatorName)));
+        listData.add(new WxMaSubscribeMessage.MsgData("thing72", truncateValue(reason)));
+        // 缩短文案以符合thing字段30字限制
+        String tip = String.format("%s用户解除%s关系，24小时后生效", truncateValue(initiatorName), truncateValue(relationName));
+        listData.add(new WxMaSubscribeMessage.MsgData("thing8", truncateValue(tip)));
+
+        sendSubscribeMessage(openid, templateId, listData, "pages/index/index");
+    }
+
+    /**
      * 截断字符串以符合微信模板限制
-     * 微信订阅消息的 thing 类型字段限制为20个字符
+     * 微信订阅消息的 thing 类型字段限制为30个字符
      */
     private String truncateValue(String value) {
-        return StrUtil.subSufByLength(value, 20);
+        return StrUtil.subPre(value, 30);
     }
 }

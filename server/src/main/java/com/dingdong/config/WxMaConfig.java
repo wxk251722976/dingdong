@@ -34,6 +34,8 @@ public class WxMaConfig {
         private String checkinComplete;
         /** 漏打卡通知模板ID (使用打卡成功模板) - cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q */
         private String missedCheckin;
+        /** 解绑通知模板ID (预约通知) - CTttXRsZsgIOksiCAVmAFWkTAHyXLbd6re1QlFQummM */
+        private String unbind;
     }
 
     /**

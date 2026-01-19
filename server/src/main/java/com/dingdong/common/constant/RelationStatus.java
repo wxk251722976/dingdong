@@ -18,7 +18,13 @@ public enum RelationStatus {
     ACCEPTED(1, "已接受"),
 
     /** 已拒绝 - 对方拒绝了绑定邀请 */
-    REJECTED(2, "已拒绝");
+    REJECTED(2, "已拒绝"),
+
+    /** 解绑中 - 已发起解绑，24小时后生效 */
+    UNBINDING(3, "解绑中"),
+
+    /** 已解绑 - 关系已解除 */
+    UNBOUND(4, "已解绑");
 
     private final Integer code;
     private final String desc;
