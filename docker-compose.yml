@@ -86,9 +86,9 @@ services:
       # SeaweedFS 配置（Docker网络内使用服务名）
       SEAWEEDFS_MASTER_URL: http://seaweedfs-master:9333
       SEAWEEDFS_VOLUME_URL: http://seaweedfs-volume:8082
-      SEAWEEDFS_PUBLIC_URL: ${SEAWEEDFS_PUBLIC_URL:-http://localhost:8082}
+      SEAWEEDFS_PUBLIC_URL: ${SEAWEEDFS_PUBLIC_URL:-https://api.doudou.asia/files}
       # Spring 配置
-      SPRING_PROFILES_ACTIVE: docker
+      SPRING_PROFILES_ACTIVE: prod
     ports:
       - "${SERVER_PORT:-8080}:8080"
     networks:
@@ -125,6 +125,25 @@ services:
       - seaweedfs-master
     volumes:
       - seaweedfs_volume_data:/data
+    networks:
+      - dingdong-network
+
+  # ============================================
+  # Nginx 反向代理 (HTTPS)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: dingdong-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - server
+      - seaweedfs-volume
     networks:
       - dingdong-network
 

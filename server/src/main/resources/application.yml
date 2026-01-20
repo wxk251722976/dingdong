@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  # 默认使用开发环境配置
+  # 生产环境通过 Docker 设置 SPRING_PROFILES_ACTIVE=prod
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   application:
     name: dingdong-server
   datasource:
@@ -53,8 +57,4 @@ jwt:
   secret: 81e5b1e6c30e0e92118a8eb8a005d4a8001162db217d9a505393434cd178b024  # JWT 密钥（至少32字符）
   expiration: 604800000  # Token 有效期（毫秒，默认7天）
 
-# SeaweedFS 文件存储配置
-seaweedfs:
-  master-url: ${SEAWEEDFS_MASTER_URL:http://localhost:9333}
-  volume-url: ${SEAWEEDFS_VOLUME_URL:http://localhost:8082}
-  public-url: ${SEAWEEDFS_PUBLIC_URL:http://localhost:8082}
+# SeaweedFS 配置已移至 application-dev.yml / application-prod.yml

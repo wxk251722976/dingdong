@@ -24,8 +24,7 @@ export const uploadAvatar = (tempFilePath) => {
             filePath: tempFilePath,
             name: 'file',
             header: {
-                'Authorization': token ? `Bearer ${token}` : '',
-                'ngrok-skip-browser-warning': 'true'
+                'Authorization': token ? `Bearer ${token}` : ''
             },
             success: (res) => {
                 uni.hideLoading();

@@ -1,0 +1,10 @@
+# ============================================
+# 生产环境配置 (Docker 部署时使用)
+# 运行方式: Docker Compose 自动设置 SPRING_PROFILES_ACTIVE=prod
+# ============================================
+
+# SeaweedFS 生产环境配置（使用 HTTPS 域名）
+seaweedfs:
+  master-url: ${SEAWEEDFS_MASTER_URL:http://seaweedfs-master:9333}
+  volume-url: ${SEAWEEDFS_VOLUME_URL:http://seaweedfs-volume:8082}
+  public-url: ${SEAWEEDFS_PUBLIC_URL:https://api.doudou.asia/files}

@@ -1,6 +1,13 @@
-// 使用 ngrok 内网穿透的公网地址
-// 注意：ngrok 免费版每次重启地址会变化
-export const BASE_URL = 'https://scrabbly-comfier-queen.ngrok-free.dev';
+// 从环境变量读取 API 地址（自动区分开发/生产）
+// 开发: .env.development -> VITE_API_BASE_URL
+// 生产: .env.production -> VITE_API_BASE_URL
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.doudou.asia';
+
+// 调试：查看环境变量
+console.log('=== 环境变量调试 ===');
+console.log('NODE_ENV:', import.meta.env.MODE);
+console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+console.log('最终 BASE_URL:', BASE_URL);
 
 let isRefreshing = false;
 let requests = [];
@@ -26,7 +33,7 @@ const request = (options) => {
         // 确保 header 存在
         options.header = options.header || {};
         options.header['Content-Type'] = 'application/json';
-        // ngrok 免费版必须要这个 header，否则会返回警告页面导致请求失败
+        // ngrok 免费版需要这个 header
         options.header['ngrok-skip-browser-warning'] = 'true';
         if (token) {
             options.header['Authorization'] = `Bearer ${token}`;
@@ -50,7 +57,7 @@ const request = (options) => {
                                 url: BASE_URL + '/auth/refresh',
                                 method: 'POST',
                                 data: { refreshToken },
-                                header: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                                header: { 'Content-Type': 'application/json' },
                                 success: (refreshRes) => {
                                     if (refreshRes.statusCode === 200 && refreshRes.data.code === 200) {
                                         const newToken = refreshRes.data.data.token;

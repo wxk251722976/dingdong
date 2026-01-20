@@ -1,0 +1,13 @@
+# ============================================
+# 开发环境配置 (本地运行时使用)
+# 运行方式: 直接启动 Spring Boot 或使用 -Dspring.profiles.active=dev
+# ============================================
+
+# SeaweedFS 开发环境配置（使用局域网 IP）
+seaweedfs:
+  master-url: http://localhost:9333
+  volume-url: http://localhost:8082
+  # 替换为你的局域网 IP，供手机预览访问
+  # ngrok 只穿透了 8080，文件暂时用本地地址（开发者工具可访问）
+  # 手机预览图片可能无法加载，需要单独穿透 8082 或通过 API 代理
+  public-url: http://localhost:8082
