@@ -20,4 +20,7 @@ public class CheckInLogVO {
 
     /** 状态: 1-正常, 2-补打卡 */
     private Integer status;
+
+    /** 任务标题 */
+    private String taskTitle;
 }

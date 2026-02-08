@@ -1,5 +1,6 @@
 package com.dingdong.config;
 
+import com.dingdong.common.ErrorCode;
 import com.dingdong.common.context.SystemContextHolder;
 import com.dingdong.common.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,12 +42,12 @@ public class AuthInterceptor implements HandlerInterceptor {
         String token = extractToken(request);
 
         if (!StringUtils.hasText(token)) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "未提供认证令牌");
+            sendError(response, ErrorCode.UNAUTHORIZED);
             return false;
         }
 
         if (!jwtUtil.validateToken(token)) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "认证令牌无效或已过期");
+            sendError(response, ErrorCode.UNAUTHORIZED);
             return false;
         }
 
@@ -82,13 +83,16 @@ public class AuthInterceptor implements HandlerInterceptor {
     /**
      * 发送错误响应
      */
-    private void sendError(HttpServletResponse response, int status, String message) throws Exception {
-        response.setStatus(status);
+    private void sendError(HttpServletResponse response, ErrorCode errorCode) throws Exception {
+        response.setStatus(HttpServletResponse.SC_OK); // 保持200，内容体现错误，或者根据需求改为 errorCode.getCode()
         response.setContentType("application/json;charset=UTF-8");
+
+        // 使用 Result 对象统一结构
         Map<String, Object> result = Map.of(
-                "code", status,
-                "msg", message,
-                "data", (Object) null);
+                "code", errorCode.getCode(),
+                "msg", errorCode.getMsg(),
+                "data", null);
+
         response.getWriter().write(objectMapper.writeValueAsString(result));
     }
 }

@@ -48,3 +48,5 @@ INSERT INTO `user_level_config` (`id`, `level_code`, `level_name`, `max_supervis
 
 -- 用户表增加等级字段
 ALTER TABLE `sys_user` ADD COLUMN `level_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'NORMAL' COMMENT '用户等级编码';
+
+ALTER TABLE `check_in_task` ADD COLUMN `description` VARCHAR(255) DEFAULT NULL COMMENT '任务详细内容';

@@ -1,5 +1,6 @@
 package com.dingdong.service.checkin;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.dingdong.dto.checkin.CheckInDTO;
 import com.dingdong.entity.checkin.CheckInLog;
@@ -22,10 +23,11 @@ public interface ICheckInLogService extends IService<CheckInLog> {
     boolean doCheckIn(CheckInDTO checkInDTO);
 
     /**
-     * 获取用户打卡日志
+     * 获取用户打卡日志（分页）
      * 
+     * @param page   分页参数
      * @param userId 用户 ID
-     * @return 日志列表
+     * @return 分页结果
      */
-    List<CheckInLog> getLogsByUserId(Long userId);
+    IPage<CheckInLog> getLogsByUserId(IPage<CheckInLog> page, Long userId);
 }

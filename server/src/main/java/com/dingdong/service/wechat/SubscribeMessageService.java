@@ -185,6 +185,39 @@ public class SubscribeMessageService {
     }
 
     /**
+     * 发送打卡提醒消息（新任务设置通知）
+     * 当有人给用户设置新任务后调用
+     * 使用模板518: 打卡提醒
+     *
+     * @param toOpenId    任务执行者的openid
+     * @param taskTitle   任务标题（活动名称）
+     * @param remindTime  打卡时间
+     * @param creatorName 任务创建者名称
+     */
+    public void sendTaskReminderMessage(String toOpenId, String taskTitle,
+            LocalDateTime remindTime, String creatorName) {
+        String templateId = wxMaConfig.getSubscribeMessage().getTaskReminder();
+
+        List<WxMaSubscribeMessage.MsgData> data = buildTaskReminderData(taskTitle, remindTime, creatorName);
+        sendSubscribeMessage(toOpenId, templateId, data, "pages/home/index");
+    }
+
+    /**
+     * 构建打卡提醒消息数据
+     */
+    private List<WxMaSubscribeMessage.MsgData> buildTaskReminderData(String taskTitle,
+            LocalDateTime remindTime, String creatorName) {
+        // 模板518字段: thing1-活动名称, time2-打卡时间, thing3-备注
+        List<WxMaSubscribeMessage.MsgData> data = new ArrayList<>();
+        data.add(new WxMaSubscribeMessage.MsgData("thing1", truncateValue(taskTitle)));
+        data.add(new WxMaSubscribeMessage.MsgData("time2",
+                remindTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
+        data.add(new WxMaSubscribeMessage.MsgData("thing3",
+                truncateValue(creatorName + "用户给你设置了任务")));
+        return data;
+    }
+
+    /**
      * 截断字符串以符合微信模板限制
      * 微信订阅消息的 thing 类型字段限制为30个字符
      */

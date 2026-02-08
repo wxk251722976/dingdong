@@ -29,7 +29,7 @@ public class NotificationLog {
      * 通知类型
      * 1-叮咚提醒, 2-打卡完成, 3-漏打卡, 4-补打卡
      * 
-     * @see com.dingdong.common.constant.NotifyType
+     * @see NotifyType
      */
     private Integer notifyType;
 

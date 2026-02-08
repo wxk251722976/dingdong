@@ -14,12 +14,24 @@ public class Result<T> {
         this.data = data;
     }
 
+    public static <T> Result<T> success() {
+        return success(null);
+    }
+
     public static <T> Result<T> success(T data) {
-        return new Result<>(200, "success", data);
+        return new Result<>(ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMsg(), data);
     }
 
     public static <T> Result<T> error(String msg) {
-        return new Result<>(500, msg, null);
+        return new Result<>(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), msg, null);
+    }
+
+    public static <T> Result<T> error(ErrorCode errorCode) {
+        return new Result<>(errorCode.getCode(), errorCode.getMsg(), null);
+    }
+
+    public static <T> Result<T> error(ErrorCode errorCode, String msg) {
+        return new Result<>(errorCode.getCode(), msg, null);
     }
 
     public static <T> Result<T> error(Integer code, String msg) {

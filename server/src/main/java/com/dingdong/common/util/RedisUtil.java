@@ -146,6 +146,16 @@ public class RedisUtil {
     }
 
     /**
+     * 获取原始字节数组值 (用于 Bitmap 等操作)
+     *
+     * @param key 键
+     * @return 值
+     */
+    public byte[] get(byte[] key) {
+        return redisTemplate.execute((RedisCallback<byte[]>) connection -> connection.get(key));
+    }
+
+    /**
      * 递增
      *
      * @param key   键

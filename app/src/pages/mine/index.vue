@@ -30,7 +30,7 @@
         <view class="arrow"></view>
       </div>
 
-      <div class="menu-item">
+      <div class="menu-item" @click="handleNotifySetting">
         <div class="menu-left">
             <text class="icon">🔔</text>
             <text class="menu-text">通知设置</text>
@@ -84,6 +84,7 @@
 <script>
 import request from '@/utils/request';
 import { uploadAvatar } from '@/utils/upload';
+import { requestAllSubscribe } from '@/utils/subscribe';
 
 export default {
   data() {
@@ -138,6 +139,22 @@ export default {
     },
     navTo(url) {
       uni.navigateTo({ url });
+    },
+    /**
+     * 处理通知设置点击
+     */
+    async handleNotifySetting() {
+      try {
+        const result = await requestAllSubscribe();
+        if (result.cancelled) {
+          uni.showToast({ title: '已取消订阅', icon: 'none' });
+        } else {
+          uni.showToast({ title: '已开启通知', icon: 'success' });
+        }
+      } catch (e) {
+        console.error('订阅失败:', e);
+        uni.showToast({ title: '订阅失败，请重试', icon: 'none' });
+      }
     },
     openEditPopup() {
       if (!this.userInfo.id) {

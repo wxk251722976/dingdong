@@ -1,6 +1,7 @@
 package com.dingdong.service.checkin.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dingdong.common.constant.CheckInStatus;
 import com.dingdong.common.constant.NotifyType;
@@ -11,6 +12,7 @@ import com.dingdong.entity.checkin.CheckInLog;
 import com.dingdong.entity.checkin.CheckInTask;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.mapper.checkin.CheckInLogMapper;
+import com.dingdong.mapper.checkin.CheckInTaskMapper;
 import com.dingdong.service.checkin.CheckInBitmapService;
 import com.dingdong.service.checkin.ICheckInLogService;
 import com.dingdong.service.notification.INotificationLogService;
@@ -36,7 +38,7 @@ import java.util.concurrent.Executor;
 @RequiredArgsConstructor
 public class CheckInLogServiceImpl extends ServiceImpl<CheckInLogMapper, CheckInLog> implements ICheckInLogService {
 
-    private final com.dingdong.mapper.checkin.CheckInTaskMapper checkInTaskMapper;
+    private final CheckInTaskMapper checkInTaskMapper;
     private final ISysUserService sysUserService;
     private final SubscribeMessageService subscribeMessageService;
     private final CheckInBitmapService checkInBitmapService;
@@ -204,8 +206,8 @@ public class CheckInLogServiceImpl extends ServiceImpl<CheckInLogMapper, CheckIn
     }
 
     @Override
-    public List<CheckInLog> getLogsByUserId(Long userId) {
-        return this.list(new LambdaQueryWrapper<CheckInLog>()
+    public IPage<CheckInLog> getLogsByUserId(IPage<CheckInLog> page, Long userId) {
+        return this.page(page, new LambdaQueryWrapper<CheckInLog>()
                 .eq(CheckInLog::getUserId, userId)
                 .orderByDesc(CheckInLog::getCheckTime));
     }

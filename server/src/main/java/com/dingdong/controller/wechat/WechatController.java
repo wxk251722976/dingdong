@@ -1,6 +1,10 @@
 package com.dingdong.controller.wechat;
 
 import com.dingdong.common.Result;
+import com.dingdong.common.constant.RelationStatus;
+import com.dingdong.common.constant.UpdatableMsgMemberCount;
+import com.dingdong.common.constant.UpdatableMsgState;
+import com.dingdong.dto.wechat.UpdateDynamicMsgDTO;
 import com.dingdong.service.wechat.WechatApiService;
 import lombok.RequiredArgsConstructor;
 import me.chanjar.weixin.common.error.WxErrorException;
@@ -45,10 +49,10 @@ public class WechatController {
      * @return 是否成功
      */
     @PostMapping("/updateDynamicMsg")
-    public Result<Boolean> updateDynamicMsg(@RequestBody Map<String, String> requestBody) {
+    public Result<Boolean> updateDynamicMsg(@RequestBody UpdateDynamicMsgDTO requestBody) {
         try {
-            String activityId = requestBody.get("activityId");
-            String status = requestBody.get("status");
+            String activityId = requestBody.getActivityId();
+            String status = requestBody.getStatus();
 
             if (activityId == null || activityId.isEmpty()) {
                 return Result.error(400, "activityId不能为空");
@@ -56,17 +60,18 @@ public class WechatController {
 
             // 根据状态设置动态消息
             // target_state: 0-未开始, 1-进行中, 2-已结束
-            int targetState = 2; // 已结束
+            int targetState = UpdatableMsgState.ENDED.getCode(); // 已结束
 
             String memberCount;
-            String roomLimit = "2";
+            // 房间限制人数
+            String roomLimit = UpdatableMsgMemberCount.TWO.getValue();
 
-            if ("accepted".equals(status)) {
+            if (RelationStatus.ACCEPTED.name().equalsIgnoreCase(status)) {
                 // 已接受
-                memberCount = "2";
+                memberCount = UpdatableMsgMemberCount.TWO.getValue();
             } else {
                 // 已拒绝
-                memberCount = "1";
+                memberCount = UpdatableMsgMemberCount.ONE.getValue();
             }
 
             wechatApiService.setUpdatableMsg(activityId, targetState, memberCount, roomLimit);

@@ -8,6 +8,8 @@ import com.dingdong.entity.user.RelationHistory;
 import com.dingdong.entity.user.UserRelation;
 import com.dingdong.service.user.IRelationHistoryService;
 import com.dingdong.service.user.IUserRelationService;
+import com.dingdong.vo.user.RelationDisplayVO;
+import com.dingdong.vo.user.UserRelationVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -69,6 +71,15 @@ public class RelationController {
      */
     @PostMapping("/bind")
     public Result<Boolean> bind(@RequestBody BindDTO bindDTO) {
+        // 验证当前用户是否是被邀请人
+        Long currentUserId = SystemContextHolder.getUserId();
+        if (!currentUserId.equals(bindDTO.getSupervisedId())) {
+            return Result.error("只有被邀请人才能接受绑定");
+        }
+        // 验证不能自己邀请自己
+        if (bindDTO.getSupervisedId().equals(bindDTO.getSupervisorId())) {
+            return Result.error("不能与自己建立关系");
+        }
         return Result.success(relationService.bindSupervised(bindDTO));
     }
 
@@ -111,12 +122,12 @@ public class RelationController {
      * @return 关系列表
      */
     @GetMapping("/myRelations")
-    public Result<List<com.dingdong.vo.user.UserRelationVO>> getMyRelations() {
+    public Result<List<UserRelationVO>> getMyRelations() {
         Long userId = SystemContextHolder.getUserId();
         List<UserRelation> relations = relationService.getMyRelations(userId);
 
-        List<com.dingdong.vo.user.UserRelationVO> vos = relations.stream().map(relation -> {
-            com.dingdong.vo.user.UserRelationVO vo = new com.dingdong.vo.user.UserRelationVO();
+        List<UserRelationVO> vos = relations.stream().map(relation -> {
+            UserRelationVO vo = new UserRelationVO();
             vo.setId(relation.getId());
             vo.setInitiatorId(relation.getInitiatorId());
             vo.setPartnerId(relation.getPartnerId());
@@ -135,12 +146,12 @@ public class RelationController {
      * @return 关系展示列表
      */
     @GetMapping("/listWithUserInfo")
-    public Result<List<com.dingdong.vo.user.RelationDisplayVO>> getRelationsWithUserInfo() {
+    public Result<List<RelationDisplayVO>> getRelationsWithUserInfo() {
         Long userId = SystemContextHolder.getUserId();
         List<RelationDisplayDTO> dtos = relationService.getRelationsWithUserInfo(userId);
 
-        List<com.dingdong.vo.user.RelationDisplayVO> vos = dtos.stream().map(dto -> {
-            com.dingdong.vo.user.RelationDisplayVO vo = new com.dingdong.vo.user.RelationDisplayVO();
+        List<RelationDisplayVO> vos = dtos.stream().map(dto -> {
+            RelationDisplayVO vo = new RelationDisplayVO();
             vo.setId(dto.getId());
             vo.setInitiatorId(dto.getInitiatorId());
             vo.setPartnerId(dto.getPartnerId());

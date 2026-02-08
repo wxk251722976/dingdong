@@ -47,6 +47,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import request from '@/utils/request';
+import { requestTaskReminderSubscribe } from '@/utils/subscribe';
 
 const loading = ref(true);
 const submitting = ref(false);
@@ -161,6 +162,11 @@ const handleAccept = async () => {
     uni.showToast({
       title: '绑定成功',
       icon: 'success'
+    });
+    
+    // 引导用户订阅任务提醒通知
+    await requestTaskReminderSubscribe().catch(e => {
+      console.log('订阅结果:', e);
     });
     
     setTimeout(() => {

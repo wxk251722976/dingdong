@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Data;
+
 /**
  * 打卡统计 Redis Bitmap 服务
  * 
@@ -131,7 +133,7 @@ public class CheckInBitmapService {
     }
 
     /**
-     * 统计用户指定日期范围内的打卡天数
+     * 统计用户指定日期范围内的打卡天数 (优化版: 批量获取)
      *
      * @param userId    用户ID
      * @param startDate 开始日期
@@ -139,33 +141,87 @@ public class CheckInBitmapService {
      * @return 打卡天数
      */
     public int countCheckInsInRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        // 如果跨年，需分段处理（目前设计Key按年存储）
+        if (startDate.getYear() != endDate.getYear()) {
+            LocalDate endOfFirstYear = LocalDate.of(startDate.getYear(), 12, 31);
+            LocalDate startOfSecondYear = LocalDate.of(endDate.getYear(), 1, 1);
+            return countCheckInsInRange(userId, startDate, endOfFirstYear) +
+                    countCheckInsInRange(userId, startOfSecondYear, endDate);
+        }
+
+        String key = getUserKey(userId, startDate.getYear());
+        byte[] bytes = redisUtil.get(key.getBytes());
+
+        if (bytes == null || bytes.length == 0) {
+            return 0;
+        }
+
+        int startDay = startDate.getDayOfYear() - 1;
+        int endDay = endDate.getDayOfYear() - 1;
         int count = 0;
-        LocalDate current = startDate;
-        while (!current.isAfter(endDate)) {
-            if (hasCheckedIn(userId, current)) {
+
+        for (int i = startDay; i <= endDay; i++) {
+            if (getBit(bytes, i)) {
                 count++;
             }
-            current = current.plusDays(1);
         }
         return count;
     }
 
     /**
-     * 计算用户连续打卡天数（从今天往前算）
+     * 辅助方法：无需 Redis 操作，直接从 byte数组获取 bit
+     */
+    private boolean getBit(byte[] bytes, int offset) {
+        int byteIndex = offset / 8;
+        int bitIndex = 7 - (offset % 8); // Redis bit order is big-endian within byte
+
+        if (byteIndex >= bytes.length) {
+            return false;
+        }
+
+        return (bytes[byteIndex] & (1 << bitIndex)) != 0;
+    }
+
+    /**
+     * 计算用户连续打卡天数（从今天往前算） (优化版: 支持跨年)
      *
      * @param userId 用户ID
      * @return 连续打卡天数
      */
     public int calculateStreakDays(Long userId) {
         LocalDate today = LocalDate.now();
+        int currentYear = today.getYear();
+        String key = getUserKey(userId, currentYear);
+        byte[] bytes = redisUtil.get(key.getBytes());
+        byte[] prevBytes = null; // 懒加载去年数据
+
         int streak = 0;
-        LocalDate checkDate = today;
 
         // 最多检查365天
         for (int i = 0; i < 365; i++) {
-            if (hasCheckedIn(userId, checkDate)) {
+            LocalDate checkDate = today.minusDays(i);
+            int year = checkDate.getYear();
+            int dayOfYear = checkDate.getDayOfYear() - 1;
+
+            boolean isCheckedIn = false;
+
+            if (year == currentYear) {
+                if (bytes != null) {
+                    isCheckedIn = getBit(bytes, dayOfYear);
+                }
+            } else {
+                // 跨年了，加载去年数据
+                if (prevBytes == null) {
+                    String prevKey = getUserKey(userId, year);
+                    prevBytes = redisUtil.get(prevKey.getBytes());
+                }
+                if (prevBytes != null) {
+                    isCheckedIn = getBit(prevBytes, dayOfYear);
+                }
+            }
+
+            if (isCheckedIn) {
                 streak++;
-                checkDate = checkDate.minusDays(1);
             } else {
                 break;
             }
@@ -175,38 +231,39 @@ public class CheckInBitmapService {
     }
 
     /**
-     * 计算用户最长连续打卡天数（指定年份）
+     * 计算用户最长连续打卡天数（指定年份） (优化版: 内存位运算)
      *
      * @param userId 用户ID
      * @param year   年份
      * @return 最长连续打卡天数
      */
     public int calculateMaxStreakDays(Long userId, int year) {
-        // key 变量预留用于后续 Redis BITFIELD 优化
-        log.debug("计算最长连续打卡天数: userId={}, year={}, key={}", userId, year, getUserKey(userId, year));
+        String key = getUserKey(userId, year);
+        byte[] bytes = redisUtil.get(key.getBytes());
+
+        if (bytes == null || bytes.length == 0) {
+            return 0;
+        }
+
         int maxStreak = 0;
         int currentStreak = 0;
+        // 366天覆盖闰年
+        int daysInYear = LocalDate.of(year, 12, 31).getDayOfYear();
 
-        LocalDate date = LocalDate.of(year, 1, 1);
-        LocalDate endDate = year == LocalDate.now().getYear()
-                ? LocalDate.now()
-                : LocalDate.of(year, 12, 31);
-
-        while (!date.isAfter(endDate)) {
-            if (hasCheckedIn(userId, date)) {
+        for (int i = 0; i < daysInYear; i++) {
+            if (getBit(bytes, i)) {
                 currentStreak++;
                 maxStreak = Math.max(maxStreak, currentStreak);
             } else {
                 currentStreak = 0;
             }
-            date = date.plusDays(1);
         }
 
         return maxStreak;
     }
 
     /**
-     * 获取用户指定日期范围内的打卡记录
+     * 获取用户指定日期范围内的打卡记录 (优化版: 批量获取)
      *
      * @param userId    用户ID
      * @param startDate 开始日期
@@ -217,10 +274,29 @@ public class CheckInBitmapService {
         Map<String, Boolean> records = new HashMap<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+        // 简单处理：如果范围跨年，逻辑会比较复杂，这里暂简化为循环当年
+        // 生产环境应根据每一天所属年份获取对应的 bytes
+
+        // 优化策略：按年分组处理
         LocalDate current = startDate;
         while (!current.isAfter(endDate)) {
-            records.put(current.format(formatter), hasCheckedIn(userId, current));
-            current = current.plusDays(1);
+            int year = current.getYear();
+            LocalDate endOfYear = LocalDate.of(year, 12, 31);
+            if (endOfYear.isAfter(endDate)) {
+                endOfYear = endDate;
+            }
+
+            String key = getUserKey(userId, year);
+            byte[] bytes = redisUtil.get(key.getBytes());
+
+            while (!current.isAfter(endOfYear)) {
+                boolean isCheckedIn = false;
+                if (bytes != null) {
+                    isCheckedIn = getBit(bytes, current.getDayOfYear() - 1);
+                }
+                records.put(current.format(formatter), isCheckedIn);
+                current = current.plusDays(1);
+            }
         }
 
         return records;
@@ -240,7 +316,7 @@ public class CheckInBitmapService {
     }
 
     /**
-     * 获取用户近 N 天的每日打卡次数（简化版，只统计是否打卡）
+     * 获取用户近 N 天的每日打卡次数（简化版，只统计是否打卡） (优化版: 批量获取)
      *
      * @param userId 用户ID
      * @param days   天数
@@ -249,13 +325,22 @@ public class CheckInBitmapService {
     public List<DailyCheckInStat> getRecentDailyStats(Long userId, int days) {
         List<DailyCheckInStat> stats = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
+        DateTimeFormatter keyFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(days - 1);
+
+        // 批量获取打卡记录（已处理跨年逻辑）
+        Map<String, Boolean> records = getCheckInRecords(userId, startDate, today);
 
         for (int i = days - 1; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
+            String key = date.format(keyFormatter);
+            Boolean isCheckedIn = records.getOrDefault(key, false);
+
             DailyCheckInStat stat = new DailyCheckInStat();
             stat.setDate(date.format(formatter));
-            stat.setCheckedIn(hasCheckedIn(userId, date));
+            stat.setCheckedIn(isCheckedIn);
             stat.setCount(stat.isCheckedIn() ? 1 : 0);
             stats.add(stat);
         }
@@ -316,7 +401,7 @@ public class CheckInBitmapService {
     /**
      * 每日打卡统计
      */
-    @lombok.Data
+    @Data
     public static class DailyCheckInStat {
         /**
          * 日期（格式：MM-dd）

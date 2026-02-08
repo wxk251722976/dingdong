@@ -1,5 +1,6 @@
 package com.dingdong.controller.checkin;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.dingdong.common.Result;
 import com.dingdong.common.constant.TaskEnabled;
@@ -14,9 +15,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.dingdong.entity.user.SysUser;
+import com.dingdong.vo.checkin.DailyTaskStatusVO;
+import com.dingdong.vo.checkin.TaskDetailVO;
 
 /**
  * 任务控制器
@@ -43,14 +48,14 @@ public class TaskController {
      * 获取当前用户每日任务及完成状态
      */
     @GetMapping("/daily")
-    public Result<List<com.dingdong.vo.checkin.DailyTaskStatusVO>> getDailyTasks(
+    public Result<List<DailyTaskStatusVO>> getDailyTasks(
             @RequestParam(required = false) String date) {
         Long userId = SystemContextHolder.getUserId();
         LocalDate localDate = (date == null) ? LocalDate.now() : LocalDate.parse(date);
         List<DailyTaskStatusDTO> dtos = taskService.getDailyTaskStatus(userId, localDate);
 
-        List<com.dingdong.vo.checkin.DailyTaskStatusVO> vos = dtos.stream().map(dto -> {
-            com.dingdong.vo.checkin.DailyTaskStatusVO vo = new com.dingdong.vo.checkin.DailyTaskStatusVO();
+        List<DailyTaskStatusVO> vos = dtos.stream().map(dto -> {
+            DailyTaskStatusVO vo = new DailyTaskStatusVO();
             vo.setTaskId(dto.getTaskId());
             vo.setTitle(dto.getTitle());
             vo.setRemindTime(dto.getRemindTime());
@@ -58,7 +63,7 @@ public class TaskController {
             vo.setStatus(dto.getStatus());
             vo.setCheckTime(dto.getCheckTime());
             return vo;
-        }).collect(java.util.stream.Collectors.toList());
+        }).collect(Collectors.toList());
 
         return Result.success(vos);
     }
@@ -67,13 +72,13 @@ public class TaskController {
      * 获取指定被监督用户的任务列表（当前用户作为创建者/监督者）
      */
     @GetMapping("/list")
-    public Result<List<com.dingdong.vo.checkin.DailyTaskStatusVO>> getTaskList(@RequestParam Long userId) {
+    public Result<List<DailyTaskStatusVO>> getTaskList(@RequestParam Long userId) {
         // creatorId从上下文获取（当前登录用户就是监督者）
         Long creatorId = SystemContextHolder.getUserId();
         List<DailyTaskStatusDTO> dtos = taskService.getDailyTaskStatusByCreator(userId, LocalDate.now(), creatorId);
 
-        List<com.dingdong.vo.checkin.DailyTaskStatusVO> vos = dtos.stream().map(dto -> {
-            com.dingdong.vo.checkin.DailyTaskStatusVO vo = new com.dingdong.vo.checkin.DailyTaskStatusVO();
+        List<DailyTaskStatusVO> vos = dtos.stream().map(dto -> {
+            DailyTaskStatusVO vo = new DailyTaskStatusVO();
             vo.setTaskId(dto.getTaskId());
             vo.setTitle(dto.getTitle());
             vo.setRemindTime(dto.getRemindTime());
@@ -81,7 +86,7 @@ public class TaskController {
             vo.setStatus(dto.getStatus());
             vo.setCheckTime(dto.getCheckTime());
             return vo;
-        }).collect(java.util.stream.Collectors.toList());
+        }).collect(Collectors.toList());
 
         return Result.success(vos);
     }
@@ -90,13 +95,13 @@ public class TaskController {
      * 获取任务详情
      */
     @GetMapping("/detail")
-    public Result<com.dingdong.vo.checkin.TaskDetailVO> getTaskDetail(@RequestParam Long taskId) {
+    public Result<TaskDetailVO> getTaskDetail(@RequestParam Long taskId) {
         CheckInTask task = taskService.getById(taskId);
         if (task == null) {
             return Result.error("任务不存在");
         }
 
-        com.dingdong.vo.checkin.TaskDetailVO vo = new com.dingdong.vo.checkin.TaskDetailVO();
+        TaskDetailVO vo = new TaskDetailVO();
         vo.setTaskId(task.getId());
         vo.setTitle(task.getTitle());
         vo.setDescription(task.getDescription());
@@ -107,13 +112,13 @@ public class TaskController {
 
         // 获取任务目标用户名称
         if (task.getUserId() != null) {
-            com.dingdong.entity.user.SysUser user = sysUserService.getById(task.getUserId());
+            SysUser user = sysUserService.getById(task.getUserId());
             vo.setUserName(user != null ? user.getNickname() : "未知用户");
         }
 
         // 获取创建者信息
         if (task.getCreatorId() != null) {
-            com.dingdong.entity.user.SysUser creator = sysUserService.getById(task.getCreatorId());
+            SysUser creator = sysUserService.getById(task.getCreatorId());
             if (creator != null) {
                 vo.setCreatorId(creator.getId());
                 vo.setCreatorName(creator.getNickname());
@@ -134,20 +139,7 @@ public class TaskController {
             return Result.error("任务不存在");
         }
 
-        if (updateDTO.getTitle() != null) {
-            task.setTitle(updateDTO.getTitle());
-        }
-        if (updateDTO.getDescription() != null) {
-            task.setDescription(updateDTO.getDescription());
-        }
-        if (updateDTO.getRepeatType() != null) {
-            task.setRepeatType(updateDTO.getRepeatType());
-        }
-        if (updateDTO.getRemindTime() != null) {
-            task.setRemindTime(updateDTO.getRemindTime());
-        }
-
-        return Result.success(taskService.updateById(task));
+        return Result.success(taskService.updateById(BeanUtil.toBean(updateDTO, CheckInTask.class)));
     }
 
     /**

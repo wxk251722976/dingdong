@@ -22,6 +22,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     private static final List<String> WHITE_LIST = List.of(
             "/auth/login", // 登录接口
+            "/user/info/**", // 用户信息查询（含按ID查询）
             "/error", // 错误页面
             "/favicon.ico" // 图标
     );

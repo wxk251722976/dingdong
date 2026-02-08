@@ -36,6 +36,8 @@ public class WxMaConfig {
         private String missedCheckin;
         /** 解绑通知模板ID (预约通知) - CTttXRsZsgIOksiCAVmAFWkTAHyXLbd6re1QlFQummM */
         private String unbind;
+        /** 打卡提醒模板ID (新任务通知) - WXod1A7vjMwmLAa_6mvkzanojYTmXJ-vbBXLwlNgUmE */
+        private String taskReminder;
     }
 
     /**

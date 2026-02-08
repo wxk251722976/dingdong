@@ -8,6 +8,7 @@ import com.dingdong.dto.auth.LoginDTO;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.mapper.user.SysUserMapper;
 import com.dingdong.service.user.ISysUserService;
+import com.dingdong.service.user.IUserLevelConfigService;
 import com.dingdong.service.wechat.WechatApiService;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
@@ -17,22 +18,16 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
-/**
- * 用户业务逻辑实现类
- * 使用 WxJava SDK 实现微信登录
- * 
- * @author Antigravity
- */
 @Slf4j
 @Service
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements ISysUserService {
 
     private final WechatApiService wechatApiService;
-    private final com.dingdong.service.user.IUserLevelConfigService levelConfigService;
+    private final IUserLevelConfigService levelConfigService;
 
     public SysUserServiceImpl(
             WechatApiService wechatApiService,
-            @Lazy com.dingdong.service.user.IUserLevelConfigService levelConfigService) {
+            @Lazy IUserLevelConfigService levelConfigService) {
         this.wechatApiService = wechatApiService;
         this.levelConfigService = levelConfigService;
     }
@@ -69,20 +64,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             user.setLevelCode(UserConstants.DEFAULT_LEVEL_CODE);
             // 默认无角色，需选择
             this.save(user);
-        } else {
-            // 4. 存在则更新信息
-            boolean needUpdate = false;
-            if (StringUtils.hasText(loginDTO.getNickname())) {
-                user.setNickname(loginDTO.getNickname());
-                needUpdate = true;
-            }
-            if (StringUtils.hasText(loginDTO.getAvatar())) {
-                user.setAvatar(loginDTO.getAvatar());
-                needUpdate = true;
-            }
-            if (needUpdate) {
-                this.updateById(user);
-            }
         }
 
         // 填充等级名称

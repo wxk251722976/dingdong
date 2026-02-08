@@ -2,6 +2,7 @@ package com.dingdong.service.checkin;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.dingdong.dto.checkin.DailyTaskStatusDTO;
+import com.dingdong.dto.checkin.SupervisedUserStatusDTO;
 import com.dingdong.dto.checkin.TaskDTO;
 import com.dingdong.entity.checkin.CheckInTask;
 
@@ -43,5 +44,5 @@ public interface ICheckInTaskService extends IService<CheckInTask> {
      * @param supervisorId 监督者ID
      * @return 用户状态列表
      */
-    List<com.dingdong.dto.checkin.SupervisedUserStatusDTO> getSupervisedUserStatusList(Long supervisorId);
+    List<SupervisedUserStatusDTO> getSupervisedUserStatusList(Long supervisorId);
 }

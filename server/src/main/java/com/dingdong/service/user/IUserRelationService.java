@@ -2,6 +2,7 @@ package com.dingdong.service.user;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.dingdong.dto.user.BindDTO;
+import com.dingdong.dto.user.RelationDisplayDTO;
 import com.dingdong.entity.user.SysUser;
 import com.dingdong.entity.user.UserRelation;
 
@@ -68,7 +69,7 @@ public interface IUserRelationService extends IService<UserRelation> {
      * @param userId 用户ID
      * @return 关系展示列表
      */
-    List<com.dingdong.dto.user.RelationDisplayDTO> getRelationsWithUserInfo(Long userId);
+    List<RelationDisplayDTO> getRelationsWithUserInfo(Long userId);
 
     /**
      * 发起解除绑定

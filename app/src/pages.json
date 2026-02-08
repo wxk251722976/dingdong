@@ -62,6 +62,13 @@
             }
         },
         {
+            "path": "pages/history/list",
+            "style": {
+                "navigationBarTitleText": "打卡记录",
+                "enablePullDownRefresh": true
+            }
+        },
+        {
             "path": "pages/mine/index",
             "style": {
                 "navigationBarTitleText": "我的"

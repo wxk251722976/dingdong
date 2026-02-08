@@ -3,13 +3,17 @@ package com.dingdong.service.wechat;
 import cn.binarywang.wx.miniapp.api.WxMaService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaSubscribeMessage;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.dingdong.config.WxMaConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 微信API服务
@@ -131,12 +135,12 @@ public class WechatApiService {
     public String createActivityId() throws WxErrorException {
         // WxJava 暂不直接支持创建动态消息活动ID，使用底层HTTP调用
         String result = wxMaService.post(
-                "cgi-bin/message/wxopen/activityid/create",
+                "https://api.weixin.qq.com/cgi-bin/message/wxopen/activityid/create",
                 "{}");
         log.info("创建activityId响应: {}", result);
 
         // 解析返回的 activity_id
-        cn.hutool.json.JSONObject json = cn.hutool.json.JSONUtil.parseObj(result);
+        JSONObject json = JSONUtil.parseObj(result);
         if (json.getInt("errcode", 0) == 0) {
             return json.getStr("activity_id");
         }
@@ -153,15 +157,15 @@ public class WechatApiService {
      */
     public void setUpdatableMsg(String activityId, int targetState, String memberCount, String roomLimit)
             throws WxErrorException {
-        String requestBody = cn.hutool.json.JSONUtil.toJsonStr(new java.util.HashMap<String, Object>() {
+        String requestBody = JSONUtil.toJsonStr(new java.util.HashMap() {
             {
                 put("activity_id", activityId);
                 put("target_state", targetState);
-                put("template_info", new java.util.HashMap<String, Object>() {
+                put("template_info", new HashMap<String, Object>() {
                     {
                         put("parameter_list", new Object[] {
-                                java.util.Map.of("name", "member_count", "value", memberCount),
-                                java.util.Map.of("name", "room_limit", "value", roomLimit)
+                                Map.of("name", "member_count", "value", memberCount),
+                                Map.of("name", "room_limit", "value", roomLimit)
                         });
                     }
                 });
@@ -169,11 +173,11 @@ public class WechatApiService {
         });
 
         String result = wxMaService.post(
-                "cgi-bin/message/wxopen/updatablemsg/send",
+                "https://api.weixin.qq.com/cgi-bin/message/wxopen/updatablemsg/send",
                 requestBody);
         log.info("更新动态消息响应: {}", result);
 
-        cn.hutool.json.JSONObject json = cn.hutool.json.JSONUtil.parseObj(result);
+        JSONObject json = JSONUtil.parseObj(result);
         if (json.getInt("errcode", 0) != 0) {
             log.error("更新动态消息失败: {}", result);
         }

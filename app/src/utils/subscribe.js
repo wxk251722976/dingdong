@@ -11,7 +11,9 @@ export const TEMPLATE_IDS = {
     // 打卡完成通知模板 - 发送给监督者 (打卡成功)
     CHECKIN_COMPLETE: 'cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q',
     // 漏打卡通知模板 - 发送给监督者 (漏打卡 - 使用同一模板)
-    MISSED_CHECKIN: 'cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q'
+    MISSED_CHECKIN: 'cYBb1tfi0grr6lYQhSwp9WRwLP2ebIgRrSR10mt270Q',
+    // 打卡提醒模板 - 新任务设置通知 (模板518)
+    TASK_REMINDER: 'WXod1A7vjMwmLAa_6mvkzanojYTmXJ-vbBXLwlNgUmE'
 };
 
 /**
@@ -106,6 +108,23 @@ export function requestAllSubscribe() {
 }
 
 /**
+ * 请求任务提醒订阅消息授权
+ * 在为他人创建任务时调用，让被设置者订阅任务通知
+ */
+export function requestTaskReminderSubscribe() {
+    const tmplIds = [
+        TEMPLATE_IDS.TASK_REMINDER
+    ].filter(id => id && !id.startsWith('YOUR_'));
+
+    if (tmplIds.length === 0) {
+        console.warn('任务提醒订阅模板ID未配置');
+        return Promise.resolve({ notConfigured: true });
+    }
+
+    return requestSubscribeMessage(tmplIds);
+}
+
+/**
  * 检查是否需要引导用户开启订阅消息
  * 在设置页检查用户的订阅状态
  */
@@ -157,6 +176,7 @@ export default {
     requestSupervisorSubscribe,
     requestSupervisedSubscribe,
     requestAllSubscribe,
+    requestTaskReminderSubscribe,
     checkSubscriptionSetting,
     showSubscribeGuide
 };

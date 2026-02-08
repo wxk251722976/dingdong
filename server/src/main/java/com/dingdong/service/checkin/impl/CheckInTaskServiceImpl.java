@@ -19,6 +19,7 @@ import com.dingdong.service.checkin.ICheckInLogService;
 import com.dingdong.service.checkin.ICheckInTaskService;
 import com.dingdong.service.user.ISysUserService;
 import com.dingdong.service.user.IUserRelationService;
+import com.dingdong.service.wechat.SubscribeMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
     private final ICheckInLogService checkInLogService;
     private final IUserRelationService userRelationService;
     private final ISysUserService sysUserService;
+    private final SubscribeMessageService subscribeMessageService;
 
     @Override
     public List<DailyTaskStatusDTO> getDailyTaskStatus(Long userId, LocalDate date) {
@@ -111,17 +113,57 @@ public class CheckInTaskServiceImpl extends ServiceImpl<CheckInTaskMapper, Check
 
     @Override
     public boolean createTask(TaskDTO taskDTO) {
-        // 如果是给他人设置任务，必须存在绑定关系 (平等关系，即 mutually accepted)
+        validateTaskRelation(taskDTO);
+
+        CheckInTask task = BeanUtil.toBean(taskDTO, CheckInTask.class);
+        task.setStatus(TaskEnabled.ENABLED.getCode());
+        boolean saved = this.save(task);
+
+        if (saved) {
+            notifyTaskExecutor(taskDTO, task);
+        }
+        return saved;
+    }
+
+    /**
+     * 验证任务创建者与执行者的关系
+     */
+    private void validateTaskRelation(TaskDTO taskDTO) {
         if (!taskDTO.getCreatorId().equals(taskDTO.getUserId())) {
             boolean isRelated = userRelationService.checkRelation(taskDTO.getCreatorId(), taskDTO.getUserId());
             if (!isRelated) {
                 throw new RuntimeException("无法创建任务：您与目标用户未绑定关系");
             }
         }
+    }
 
-        CheckInTask task = BeanUtil.toBean(taskDTO, CheckInTask.class);
-        task.setStatus(TaskEnabled.ENABLED.getCode());
-        return this.save(task);
+    /**
+     * 通知任务执行者有新任务
+     */
+    private void notifyTaskExecutor(TaskDTO taskDTO, CheckInTask task) {
+        // 仅在给他人设置任务时发送通知
+        if (taskDTO.getCreatorId().equals(taskDTO.getUserId())) {
+            return;
+        }
+
+        try {
+            SysUser executor = sysUserService.getById(taskDTO.getUserId());
+            if (executor == null || executor.getOpenid() == null) {
+                log.debug("跳过通知: 执行者不存在或无openid");
+                return;
+            }
+
+            SysUser creator = sysUserService.getById(taskDTO.getCreatorId());
+            String creatorName = (creator != null) ? creator.getNickname() : "用户";
+
+            subscribeMessageService.sendTaskReminderMessage(
+                    executor.getOpenid(),
+                    task.getTitle(),
+                    task.getRemindTime(),
+                    creatorName);
+        } catch (Exception e) {
+            log.warn("发送任务设置通知失败: {}", e.getMessage());
+        }
     }
 
     // ================== 私有辅助方法 ==================

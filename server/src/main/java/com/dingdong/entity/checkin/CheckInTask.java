@@ -39,7 +39,7 @@ public class CheckInTask extends BaseEntity {
      * 重复类型
      * 0-单次, 1-每天, 2-工作日, 3-周末
      * 
-     * @see com.dingdong.common.constant.RepeatType
+     * @see RepeatType
      */
     private Integer repeatType;
 

@@ -20,7 +20,10 @@ public enum NotifyType {
     MISSED(3, "漏打卡"),
 
     /** 补打卡 - 补打卡成功后通知监督者 */
-    MAKE_UP(4, "补打卡");
+    MAKE_UP(4, "补打卡"),
+
+    /** 任务设置通知 - 有人给用户设置了新任务 */
+    TASK_ASSIGNED(5, "任务设置通知");
 
     private final Integer code;
     private final String desc;

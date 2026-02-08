@@ -6,6 +6,9 @@
            📅 {{ currentDate }} <text style="font-size: 24rpx; color: #999; margin-left: 10rpx;">(点击切换)</text>
          </div>
        </picker>
+       <div class="list-btn" @click="goToList">
+         📄 列表
+       </div>
     </div>
 
     <div class="timeline">
@@ -78,6 +81,9 @@ export default {
         }).finally(() => {
             uni.hideLoading();
         });
+    },
+    goToList() {
+      uni.navigateTo({ url: '/pages/history/list' });
     }
   }
 }
@@ -94,9 +100,16 @@ export default {
   padding: 30rpx;
   margin-bottom: 20rpx;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+}
+.list-btn {
+  font-size: 28rpx;
+  color: #666;
+  padding: 10rpx 20rpx;
+  background-color: #f0f0f0;
+  border-radius: 30rpx;
 }
 .date-picker {
     padding: 20rpx 40rpx;
